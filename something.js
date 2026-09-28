@@ -1,1 +1,129 @@
-(function()%7Bif(document.getElementById('aqp'))%7Bdocument.getElementById('aqp').remove();return%7Dconst%20s=document.createElement('style');s.textContent='#aqp%7Bposition:fixed;bottom:16px;right:16px;z-index:2147483647;width:calc(100vw%20-%2032px);max-width:260px;background:%23252526;border:1px%20solid%20%233c3c3c;border-radius:8px;font-family:-apple-system,%22Segoe%20UI%22,Roboto,sans-serif;font-size:13px;color:%23cccccc;box-shadow:0%206px%2020px%20rgba(0,0,0,0.5);user-select:none;-webkit-user-select:none;touch-action:none%7D%23aqp%20.bar%7Bdisplay:flex;align-items:center;justify-content:space-between;padding:10px%2012px;background:%232d2d30;border-bottom:1px%20solid%20%233c3c3c;border-radius:8px%208px%200%200;cursor:move;touch-action:none%7D%23aqp%20.bar%20span%7Bfont-size:13px;color:%23cccccc;font-weight:500;pointer-events:none%7D%23aqp%20.bar%20b%7Bbackground:none;border:none;color:%23858585;font-size:18px;cursor:pointer;padding:0%204px;line-height:1;touch-action:manipulation%7D%23aqp%20.bar%20b:hover%7Bcolor:%23ffffff%7D%23aqp%20.body%7Bpadding:12px%7D%23aqp%20button.go%7Bwidth:100%25;padding:11px;background:%230e639c;color:%23ffffff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-family:inherit;touch-action:manipulation%7D%23aqp%20button.go:hover%7Bbackground:%231177bb%7D%23aqp%20button.go:active%7Bbackground:%230a4d7a%7D%23aqp%20.out%7Bmargin-top:10px;padding:10px;background:%231e1e1e;border:1px%20solid%20%233c3c3c;border-radius:6px;font-family:Consolas,Menlo,monospace;font-size:12px;color:%23d4d4d4;word-break:break-all;line-height:1.5;display:none;max-height:150px;overflow-y:auto;-webkit-overflow-scrolling:touch%7D%23aqp%20.out.show%7Bdisplay:block%7D%23aqp%20.out%20.lbl%7Bcolor:%23858585;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px%7D%23aqp%20.out%20.val%7Bcolor:%234ec9b0%7D';document.head.appendChild(s);const%20g=document.createElement('div');g.id='aqp';g.innerHTML='%3Cdiv%20class=%22bar%22%20id=%22aqp-bar%22%3E%3Cspan%3EAplus%20Helper%3C/span%3E%3Cb%20id=%22aqp-x%22%3E&times;%3C/b%3E%3C/div%3E%3Cdiv%20class=%22body%22%3E%3Cbutton%20class=%22go%22%20id=%22aqp-go%22%3EShow%20Answer%3C/button%3E%3Cdiv%20class=%22out%22%20id=%22aqp-out%22%3E%3C/div%3E%3C/div%3E';document.body.appendChild(g);let%20drag=false,ox=0,oy=0;const%20bar=document.getElementById('aqp-bar');function%20startDrag(x,y)%7Bdrag=true;const%20r=g.getBoundingClientRect();ox=x-r.left;oy=y-r.top;g.style.right='auto';g.style.bottom='auto';g.style.left=r.left+'px';g.style.top=r.top+'px'%7Dfunction%20moveDrag(x,y)%7Bif(!drag)return;let%20nx=x-ox,ny=y-oy;nx=Math.max(0,Math.min(window.innerWidth-g.offsetWidth,nx));ny=Math.max(0,Math.min(window.innerHeight-g.offsetHeight,ny));g.style.left=nx+'px';g.style.top=ny+'px'%7Dfunction%20endDrag()%7Bdrag=false%7Dbar.addEventListener('mousedown',function(e)%7Bif(e.target.id==='aqp-x')return;e.preventDefault();startDrag(e.clientX,e.clientY)%7D);document.addEventListener('mousemove',function(e)%7Bif(!drag)return;e.preventDefault();moveDrag(e.clientX,e.clientY)%7D);document.addEventListener('mouseup',endDrag);bar.addEventListener('touchstart',function(e)%7Bif(e.target.id==='aqp-x')return;const%20t=e.touches%5B0%5D;startDrag(t.clientX,t.clientY)%7D,%7Bpassive:true%7D);document.addEventListener('touchmove',function(e)%7Bif(!drag)return;const%20t=e.touches%5B0%5D;moveDrag(t.clientX,t.clientY)%7D,%7Bpassive:true%7D);document.addEventListener('touchend',endDrag);function%20scan()%7Btry%7Bconst%20app=document.getElementById('app');if(!app%7C%7C!app.__vue__)return%20null;function%20walk(o,d)%7Bif(!o%7C%7Ctypeof%20o!=='object'%7C%7Cd%3E15)return%20null;if(o.__ob__)return%20null;if(o.currentQuestion&&o.currentQuestion.childQuestions)%7Bconst%20a=o.currentQuestion.childQuestions.map(q=%3Eq.questionAnswer).filter(Boolean);if(a.length)return%20a%7Dif(o.childQuestions&&Array.isArray(o.childQuestions))%7Bconst%20a=o.childQuestions.map(q=%3Eq.questionAnswer).filter(Boolean);if(a.length)return%20a%7Dif(o.$data)%7Bfor(const%20k%20in%20o.$data)%7Bconst%20v=o.$data%5Bk%5D;if(v&&typeof%20v==='object')%7Bconst%20r=walk(v,d+1);if(r)return%20r%7D%7D%7Dif(o.$children)%7Bfor(const%20c%20of%20o.$children)%7Bconst%20r=walk(c,d+1);if(r)return%20r%7D%7Dreturn%20null%7Dreturn%20walk(app.__vue__,0)%7Dcatch(e)%7Breturn%20null%7D%7Ddocument.getElementById('aqp-go').addEventListener('click',function()%7Bconst%20out=document.getElementById('aqp-out');const%20a=scan();if(!a)%7Bout.innerHTML='%3Cdiv%20class=%22lbl%22%3EResult%3C/div%3E%3Cdiv%3ENo%20answer%20found%20on%20this%20page.%3C/div%3E'%7Delse%7Bout.innerHTML='%3Cdiv%20class=%22lbl%22%3EAnswer%3C/div%3E%3Cdiv%20class=%22val%22%3E'+a.join('%20&nbsp;%C2%B7&nbsp;%20')+'%3C/div%3E'%7Dout.classList.add('show')%7D);document.getElementById('aqp-x').addEventListener('click',function()%7Bg.remove()%7D);%7D)();
+(function() {
+  if (document.getElementById('aqp')) {
+    document.getElementById('aqp').remove();
+    return;
+  }
+
+  const s = document.createElement('style');
+  s.textContent = `
+    #aqp{position:fixed;bottom:16px;right:16px;z-index:2147483647;width:calc(100vw - 32px);max-width:260px;background:#252526;border:1px solid #3c3c3c;border-radius:8px;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;font-size:13px;color:#cccccc;box-shadow:0 6px 20px rgba(0,0,0,0.5);user-select:none;-webkit-user-select:none;touch-action:none}
+    #aqp .bar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#2d2d30;border-bottom:1px solid #3c3c3c;border-radius:8px 8px 0 0;cursor:move;touch-action:none}
+    #aqp .bar span{font-size:13px;color:#cccccc;font-weight:500;pointer-events:none}
+    #aqp .bar b{background:none;border:none;color:#858585;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;touch-action:manipulation}
+    #aqp .bar b:hover{color:#ffffff}
+    #aqp .body{padding:12px}
+    #aqp button.go{width:100%;padding:11px;background:#0e639c;color:#ffffff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-family:inherit;touch-action:manipulation}
+    #aqp button.go:hover{background:#1177bb}
+    #aqp button.go:active{background:#0a4d7a}
+    #aqp .out{margin-top:10px;padding:10px;background:#1e1e1e;border:1px solid #3c3c3c;border-radius:6px;font-family:Consolas,Menlo,monospace;font-size:12px;color:#d4d4d4;word-break:break-all;line-height:1.5;display:none;max-height:150px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    #aqp .out.show{display:block}
+    #aqp .out .lbl{color:#858585;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    #aqp .out .val{color:#4ec9b0}
+  `;
+  document.head.appendChild(s);
+
+  const g = document.createElement('div');
+  g.id = 'aqp';
+  g.innerHTML = '<div class="bar" id="aqp-bar"><span>Aplus Helper</span><b id="aqp-x">&times;</b></div><div class="body"><button class="go" id="aqp-go">Show Answer</button><div class="out" id="aqp-out"></div></div>';
+  document.body.appendChild(g);
+
+  let drag = false, ox = 0, oy = 0;
+  const bar = document.getElementById('aqp-bar');
+
+  function startDrag(x, y) {
+    drag = true;
+    const r = g.getBoundingClientRect();
+    ox = x - r.left;
+    oy = y - r.top;
+    g.style.right = 'auto';
+    g.style.bottom = 'auto';
+    g.style.left = r.left + 'px';
+    g.style.top = r.top + 'px';
+  }
+  function moveDrag(x, y) {
+    if (!drag) return;
+    let nx = x - ox, ny = y - oy;
+    nx = Math.max(0, Math.min(window.innerWidth - g.offsetWidth, nx));
+    ny = Math.max(0, Math.min(window.innerHeight - g.offsetHeight, ny));
+    g.style.left = nx + 'px';
+    g.style.top = ny + 'px';
+  }
+  function endDrag() { drag = false; }
+
+  bar.addEventListener('mousedown', function(e) {
+    if (e.target.id === 'aqp-x') return;
+    e.preventDefault();
+    startDrag(e.clientX, e.clientY);
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!drag) return;
+    e.preventDefault();
+    moveDrag(e.clientX, e.clientY);
+  });
+  document.addEventListener('mouseup', endDrag);
+
+  bar.addEventListener('touchstart', function(e) {
+    if (e.target.id === 'aqp-x') return;
+    const t = e.touches[0];
+    startDrag(t.clientX, t.clientY);
+  }, { passive: true });
+  document.addEventListener('touchmove', function(e) {
+    if (!drag) return;
+    const t = e.touches[0];
+    moveDrag(t.clientX, t.clientY);
+  }, { passive: true });
+  document.addEventListener('touchend', endDrag);
+
+  function scan() {
+    try {
+      const app = document.getElementById('app');
+      if (!app || !app.__vue__) return null;
+      function walk(o, d) {
+        if (!o || typeof o !== 'object' || d > 15) return null;
+        if (o.__ob__) return null;
+        if (o.currentQuestion && o.currentQuestion.childQuestions) {
+          const a = o.currentQuestion.childQuestions.map(q => q.questionAnswer).filter(Boolean);
+          if (a.length) return a;
+        }
+        if (o.childQuestions && Array.isArray(o.childQuestions)) {
+          const a = o.childQuestions.map(q => q.questionAnswer).filter(Boolean);
+          if (a.length) return a;
+        }
+        if (o.$data) {
+          for (const k in o.$data) {
+            const v = o.$data[k];
+            if (v && typeof v === 'object') {
+              const r = walk(v, d + 1);
+              if (r) return r;
+            }
+          }
+        }
+        if (o.$children) {
+          for (const c of o.$children) {
+            const r = walk(c, d + 1);
+            if (r) return r;
+          }
+        }
+        return null;
+      }
+      return walk(app.__vue__, 0);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  document.getElementById('aqp-go').addEventListener('click', function() {
+    const out = document.getElementById('aqp-out');
+    const a = scan();
+    if (!a) {
+      out.innerHTML = '<div class="lbl">Result</div><div>No answer found on this page.</div>';
+    } else {
+      out.innerHTML = '<div class="lbl">Answer</div><div class="val">' + a.join(' &nbsp;·&nbsp; ') + '</div>';
+    }
+    out.classList.add('show');
+  });
+
+  document.getElementById('aqp-x').addEventListener('click', function() {
+    g.remove();
+  });
+})();
