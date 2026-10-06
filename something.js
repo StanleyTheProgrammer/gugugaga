@@ -1,129 +1,247 @@
-(function() {
-  if (document.getElementById('aqp')) {
-    document.getElementById('aqp').remove();
-    return;
-  }
+// aplus-helper.js
+// Host on GitHub → load with eval(fetch(url).then(r => r.text())) or a <script> tag
 
-  const s = document.createElement('style');
-  s.textContent = `
-    #aqp{position:fixed;bottom:16px;right:16px;z-index:2147483647;width:calc(100vw - 32px);max-width:260px;background:#252526;border:1px solid #3c3c3c;border-radius:8px;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;font-size:13px;color:#cccccc;box-shadow:0 6px 20px rgba(0,0,0,0.5);user-select:none;-webkit-user-select:none;touch-action:none}
-    #aqp .bar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#2d2d30;border-bottom:1px solid #3c3c3c;border-radius:8px 8px 0 0;cursor:move;touch-action:none}
-    #aqp .bar span{font-size:13px;color:#cccccc;font-weight:500;pointer-events:none}
-    #aqp .bar b{background:none;border:none;color:#858585;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;touch-action:manipulation}
-    #aqp .bar b:hover{color:#ffffff}
-    #aqp .body{padding:12px}
-    #aqp button.go{width:100%;padding:11px;background:#0e639c;color:#ffffff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-family:inherit;touch-action:manipulation}
-    #aqp button.go:hover{background:#1177bb}
-    #aqp button.go:active{background:#0a4d7a}
-    #aqp .out{margin-top:10px;padding:10px;background:#1e1e1e;border:1px solid #3c3c3c;border-radius:6px;font-family:Consolas,Menlo,monospace;font-size:12px;color:#d4d4d4;word-break:break-all;line-height:1.5;display:none;max-height:150px;overflow-y:auto;-webkit-overflow-scrolling:touch}
-    #aqp .out.show{display:block}
-    #aqp .out .lbl{color:#858585;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
-    #aqp .out .val{color:#4ec9b0}
-  `;
-  document.head.appendChild(s);
+(function () {
+    if (document.getElementById('aqp')) {
+        document.getElementById('aqp').remove();
+        return;
+    }
 
-  const g = document.createElement('div');
-  g.id = 'aqp';
-  g.innerHTML = '<div class="bar" id="aqp-bar"><span>Aplus Helper</span><b id="aqp-x">&times;</b></div><div class="body"><button class="go" id="aqp-go">Show Answer</button><div class="out" id="aqp-out"></div></div>';
-  document.body.appendChild(g);
-
-  let drag = false, ox = 0, oy = 0;
-  const bar = document.getElementById('aqp-bar');
-
-  function startDrag(x, y) {
-    drag = true;
-    const r = g.getBoundingClientRect();
-    ox = x - r.left;
-    oy = y - r.top;
-    g.style.right = 'auto';
-    g.style.bottom = 'auto';
-    g.style.left = r.left + 'px';
-    g.style.top = r.top + 'px';
-  }
-  function moveDrag(x, y) {
-    if (!drag) return;
-    let nx = x - ox, ny = y - oy;
-    nx = Math.max(0, Math.min(window.innerWidth - g.offsetWidth, nx));
-    ny = Math.max(0, Math.min(window.innerHeight - g.offsetHeight, ny));
-    g.style.left = nx + 'px';
-    g.style.top = ny + 'px';
-  }
-  function endDrag() { drag = false; }
-
-  bar.addEventListener('mousedown', function(e) {
-    if (e.target.id === 'aqp-x') return;
-    e.preventDefault();
-    startDrag(e.clientX, e.clientY);
-  });
-  document.addEventListener('mousemove', function(e) {
-    if (!drag) return;
-    e.preventDefault();
-    moveDrag(e.clientX, e.clientY);
-  });
-  document.addEventListener('mouseup', endDrag);
-
-  bar.addEventListener('touchstart', function(e) {
-    if (e.target.id === 'aqp-x') return;
-    const t = e.touches[0];
-    startDrag(t.clientX, t.clientY);
-  }, { passive: true });
-  document.addEventListener('touchmove', function(e) {
-    if (!drag) return;
-    const t = e.touches[0];
-    moveDrag(t.clientX, t.clientY);
-  }, { passive: true });
-  document.addEventListener('touchend', endDrag);
-
-  function scan() {
-    try {
-      const app = document.getElementById('app');
-      if (!app || !app.__vue__) return null;
-      function walk(o, d) {
-        if (!o || typeof o !== 'object' || d > 15) return null;
-        if (o.__ob__) return null;
-        if (o.currentQuestion && o.currentQuestion.childQuestions) {
-          const a = o.currentQuestion.childQuestions.map(q => q.questionAnswer).filter(Boolean);
-          if (a.length) return a;
+    const s = document.createElement('style');
+    s.textContent = `
+        #aqp {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 2147483647;
+            width: 260px;
+            background: #252526;
+            border: 1px solid #3c3c3c;
+            border-radius: 6px;
+            font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-size: 12px;
+            color: #cccccc;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            user-select: none;
         }
-        if (o.childQuestions && Array.isArray(o.childQuestions)) {
-          const a = o.childQuestions.map(q => q.questionAnswer).filter(Boolean);
-          if (a.length) return a;
+        #aqp .bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: #2d2d30;
+            border-bottom: 1px solid #3c3c3c;
+            border-radius: 6px 6px 0 0;
+            cursor: move;
         }
-        if (o.$data) {
-          for (const k in o.$data) {
-            const v = o.$data[k];
-            if (v && typeof v === 'object') {
-              const r = walk(v, d + 1);
-              if (r) return r;
+        #aqp .bar span { font-size: 12px; color: #cccccc; font-weight: 500; pointer-events: none; }
+        #aqp .bar b { background: none; border: none; color: #858585; font-size: 14px; cursor: pointer; padding: 0 2px; line-height: 1; }
+        #aqp .bar b:hover { color: #ffffff; }
+        #aqp .body { padding: 10px; }
+        #aqp button.go {
+            width: 100%;
+            padding: 7px;
+            background: #0e639c;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+            transition: background 0.1s;
+        }
+        #aqp button.go:hover { background: #1177bb; }
+        #aqp button.go:active { background: #0a4d7a; }
+        #aqp .out {
+            margin-top: 8px;
+            padding: 8px;
+            background: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            border-radius: 4px;
+            font-family: Consolas, Menlo, monospace;
+            font-size: 11px;
+            color: #d4d4d4;
+            word-break: break-all;
+            line-height: 1.4;
+            display: none;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        #aqp .out.show { display: block; }
+        #aqp .out .lbl {
+            color: #858585;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        #aqp .out .val { color: #4ec9b0; }
+        #aqp .out .err { color: #f48771; }
+        #aqp .ans-row {
+            padding: 4px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        #aqp .ans-row:last-child { border-bottom: none; }
+        #aqp .ans-q { color: #858585; margin-right: 6px; }
+        #aqp .frac {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 2px;
+            line-height: 1.1;
+            color: #4ec9b0;
+            font-family: Georgia, "Times New Roman", serif;
+        }
+        #aqp .frac .num { padding: 0 4px; }
+        #aqp .frac .den {
+            padding: 0 4px;
+            border-top: 1px solid #4ec9b0;
+        }
+    `;
+    document.head.appendChild(s);
+
+    const g = document.createElement('div');
+    g.id = 'aqp';
+    g.innerHTML = `
+        <div class="bar" id="aqp-bar">
+            <span>Aplus Helper</span>
+            <b id="aqp-x">&times;</b>
+        </div>
+        <div class="body">
+            <button class="go" id="aqp-go">Show Answer</button>
+            <div class="out" id="aqp-out"></div>
+        </div>
+    `;
+    document.body.appendChild(g);
+
+    let drag = false, ox = 0, oy = 0;
+    const bar = document.getElementById('aqp-bar');
+
+    bar.addEventListener('mousedown', function (e) {
+        if (e.target.id === 'aqp-x') return;
+        e.preventDefault();
+        drag = true;
+        const r = g.getBoundingClientRect();
+        ox = e.clientX - r.left;
+        oy = e.clientY - r.top;
+        g.style.right = 'auto';
+        g.style.bottom = 'auto';
+        g.style.left = r.left + 'px';
+        g.style.top = r.top + 'px';
+    });
+
+    document.addEventListener('mousemove', function (e) {
+        if (!drag) return;
+        e.preventDefault();
+        let x = e.clientX - ox;
+        let y = e.clientY - oy;
+        x = Math.max(0, Math.min(window.innerWidth - g.offsetWidth, x));
+        y = Math.max(0, Math.min(window.innerHeight - g.offsetHeight, y));
+        g.style.left = x + 'px';
+        g.style.top = y + 'px';
+    });
+
+    document.addEventListener('mouseup', function () { drag = false; });
+
+    function scan() {
+        try {
+            const app = document.getElementById('app');
+            if (!app || !app.__vue__) return { ok: false, msg: 'No Vue app found.' };
+
+            function walk(o, d) {
+                if (!o || typeof o !== 'object' || d > 15) return null;
+                if (o.__ob__) return null;
+
+                if (o.currentQuestion && o.currentQuestion.childQuestions) {
+                    const p = o.currentQuestion.childQuestions
+                        .filter(q => q.questionAnswer)
+                        .map(q => ({ qNo: q.questionNo, ans: q.questionAnswer }));
+                    if (p.length) return p;
+                }
+                if (o.childQuestions && Array.isArray(o.childQuestions)) {
+                    const p = o.childQuestions
+                        .filter(q => q.questionAnswer)
+                        .map(q => ({ qNo: q.questionNo, ans: q.questionAnswer }));
+                    if (p.length) return p;
+                }
+                if (o.$data) {
+                    for (const k in o.$data) {
+                        const v = o.$data[k];
+                        if (v && typeof v === 'object') {
+                            const r = walk(v, d + 1);
+                            if (r) return r;
+                        }
+                    }
+                }
+                if (o.$children) {
+                    for (const c of o.$children) {
+                        const r = walk(c, d + 1);
+                        if (r) return r;
+                    }
+                }
+                return null;
             }
-          }
-        }
-        if (o.$children) {
-          for (const c of o.$children) {
-            const r = walk(c, d + 1);
-            if (r) return r;
-          }
-        }
-        return null;
-      }
-      return walk(app.__vue__, 0);
-    } catch (e) {
-      return null;
-    }
-  }
 
-  document.getElementById('aqp-go').addEventListener('click', function() {
-    const out = document.getElementById('aqp-out');
-    const a = scan();
-    if (!a) {
-      out.innerHTML = '<div class="lbl">Result</div><div>No answer found on this page.</div>';
-    } else {
-      out.innerHTML = '<div class="lbl">Answer</div><div class="val">' + a.join(' &nbsp;·&nbsp; ') + '</div>';
+            const a = walk(app.__vue__, 0);
+            if (!a) return { ok: false, msg: 'No answer found on this page.' };
+            return { ok: true, ans: a };
+        } catch (e) {
+            return { ok: false, msg: e.message };
+        }
     }
-    out.classList.add('show');
-  });
 
-  document.getElementById('aqp-x').addEventListener('click', function() {
-    g.remove();
-  });
+    function esc(s) {
+        return s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function renderValue(raw) {
+        if (Array.isArray(raw)) raw = raw.join(' ; ');
+        raw = String(raw);
+
+        const re = /\$\$\\frac\{([^{}]+)\}\{([^{}]+)\}\$\$/g;
+        if (!re.test(raw)) return esc(raw);
+
+        re.lastIndex = 0;
+        let out = '', last = 0, m;
+        while ((m = re.exec(raw)) !== null) {
+            out += esc(raw.slice(last, m.index));
+            out += '<span class="frac"><span class="num">' +
+                   esc(m[1]) +
+                   '</span><span class="den">' +
+                   esc(m[2]) +
+                   '</span></span>';
+            last = re.lastIndex;
+        }
+        out += esc(raw.slice(last));
+        return out;
+    }
+
+    document.getElementById('aqp-go').addEventListener('click', function () {
+        const out = document.getElementById('aqp-out');
+        const r = scan();
+        if (r.ok) {
+            let h = '<div class="lbl">Answer</div>';
+            r.ans.forEach(function (item) {
+                h += '<div class="ans-row">';
+                if (r.ans.length > 1) {
+                    h += '<span class="ans-q">Q' + item.qNo + '</span>';
+                }
+                h += '<span class="val">' + renderValue(item.ans) + '</span>';
+                h += '</div>';
+            });
+            out.innerHTML = h;
+        } else {
+            out.innerHTML = '<div class="lbl">Result</div><div class="err">' +
+                esc(r.msg) + '</div>';
+        }
+        out.classList.add('show');
+    });
+
+    document.getElementById('aqp-x').addEventListener('click', function () {
+        g.remove();
+    });
 })();
