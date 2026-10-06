@@ -1,7 +1,7 @@
 // aplus-helper.js
 (function () {
     'use strict';
-    const resp = prompt("Do you want to test the auto answer feature? (Only mc and input) (yes or no)")
+    const resp = prompt("Do you want to test the auto answer feature? (Only mc and input) (answer or no) 您想测试自动回答功能吗？（仅限选择题和填空题）（回答yes或no）")
     if (resp === "yes") {
         //ok
     } else {
