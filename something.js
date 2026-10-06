@@ -9,7 +9,7 @@
         return;
     }
 
-    const POLL_MS = 800;
+    const POLL_MS = 100;
     let lastKey = null;
     let autoEnabled = false;
     let correctChance = 85;
