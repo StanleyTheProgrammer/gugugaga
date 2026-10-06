@@ -12,7 +12,7 @@
     let lastKey = null;
 
     // ---------- 1. Find current question data ----------
-    function getAnswers() {
+    function getQuestion() {
         try {
             const app = document.getElementById('app');
             if (!app || !app.__vue__) return null;
@@ -22,24 +22,13 @@
                 if (o.__ob__) return null;
 
                 if (o.currentQuestion && o.currentQuestion.childQuestions) {
-                    const list = o.currentQuestion.childQuestions
-                        .filter(q => q.questionAnswer)
-                        .map(q => ({
-                            qNo: q.questionNo,
-                            ans: q.questionAnswer,
-                            options: q.options || null
-                        }));
-                    if (list.length) return { key: o.currentQuestion.questionId || JSON.stringify(list), list };
+                    return o.currentQuestion;
+                }
+                if (o.currentQuestion && o.currentQuestion.questionId) {
+                    return o.currentQuestion;
                 }
                 if (o.childQuestions && Array.isArray(o.childQuestions)) {
-                    const list = o.childQuestions
-                        .filter(q => q.questionAnswer)
-                        .map(q => ({
-                            qNo: q.questionNo,
-                            ans: q.questionAnswer,
-                            options: q.options || null
-                        }));
-                    if (list.length) return { key: JSON.stringify(list), list };
+                    return o;
                 }
                 if (o.$data) {
                     for (const k in o.$data) {
@@ -65,22 +54,31 @@
         }
     }
 
-    // ---------- 2. Fill text inputs ----------
-    function fillInputs(answers) {
-        const inputs = document.querySelectorAll('textarea.ant-input');
+    function getQuestionKey(q) {
+        if (!q) return null;
+        if (q.questionId) return q.questionId;
+        if (q.childQuestions) return JSON.stringify(q.childQuestions.map(x => x.questionAnswer));
+        return null;
+    }
+
+    // ---------- 2. Fill text inputs (inside current question only) ----------
+    function fillInputs(q) {
+        const card = document.querySelector('.practice_base_topic_card') || document;
+        const inputs = card.querySelectorAll('textarea.ant-input');
         if (!inputs.length) return 0;
 
+        const answers = (q.childQuestions || []).filter(c => c.questionAnswer);
         let filled = 0;
+
         for (let i = 0; i < inputs.length; i++) {
             const input = inputs[i];
             const a = answers[i];
             if (!a) break;
 
-            let val = a.ans;
+            let val = a.questionAnswer;
             if (Array.isArray(val)) val = val[0];
             if (typeof val !== 'string') val = String(val);
 
-            // Skip if already filled with the same value
             if (input.value === val) continue;
 
             input.focus();
@@ -95,40 +93,55 @@
         return filled;
     }
 
-    // ---------- 3. Click MC options ----------
-    function clickChoices(answers) {
-        const groups = document.querySelectorAll('ul.TEXT, ul.MATH, ul.CHINESE, ul.ENGLISH');
+    // ---------- 3. Click MC options (per ul group) ----------
+    function clickChoices(q) {
+        const card = document.querySelector('.practice_base_topic_card') || document;
+        const groups = card.querySelectorAll('ul.TEXT, ul.MATH, ul.CHINESE, ul.ENGLISH');
         if (!groups.length) return 0;
+
+        // Flatten all answers from childQuestions
+        const answers = (q.childQuestions || [])
+            .filter(c => c.questionAnswer)
+            .map(c => {
+                let raw = c.questionAnswer;
+                if (Array.isArray(raw)) raw = raw[0];
+                return { raw: String(raw), child: c };
+            });
 
         let clicked = 0;
 
         for (let gi = 0; gi < groups.length; gi++) {
             const ul = groups[gi];
-            const items = ul.querySelectorAll('li.optionNumOneRaw1');
+            const items = ul.querySelectorAll('li[class*="optionNumOneRaw"]');
             if (!items.length) continue;
 
-            const a = answers[gi];
+            // Pick the answer for this group — if there are fewer answers than
+            // groups, reuse the last one (some questions render the same choice set
+            // once per blank)
+            const a = answers[gi] || answers[answers.length - 1];
             if (!a) continue;
 
             let targetLetter = null;
             let targetText = null;
+            const raw = a.raw;
 
-            const raw = Array.isArray(a.ans) ? a.ans[0] : a.ans;
-            if (typeof raw === 'string') {
+            if (raw) {
                 const m = raw.match(/^\s*([A-Z])\b/);
                 if (m) targetLetter = m[1];
                 else if (/^[A-Z]$/.test(raw.trim())) targetLetter = raw.trim();
                 else targetText = raw;
             }
 
-            if (!targetLetter && a.options) {
-                const correct = a.options.find(o => o.correct || o.isCorrect);
+            // Try the child's own options for a correct flag
+            if (!targetLetter && a.child && a.child.options) {
+                const correct = a.child.options.find(o => o.correct || o.isCorrect);
                 if (correct && correct.optionNo) targetLetter = correct.optionNo;
                 else if (correct && correct.optionContent) targetText = correct.optionContent;
             }
 
             let matched = null;
 
+            // Match by letter
             if (targetLetter) {
                 for (const li of items) {
                     const label = li.querySelector('.label span');
@@ -141,6 +154,7 @@
                 }
             }
 
+            // Fall back to text
             if (!matched && targetText) {
                 for (const li of items) {
                     const con = li.querySelector('.con span');
@@ -154,10 +168,7 @@
             }
 
             if (matched) {
-                // Skip if already selected — many UIs mark selection with a class
-                // If the site doesn't mark it, this will re-click; guard with dataset
                 if (matched.dataset.autofilled === '1') continue;
-
                 matched.click();
                 matched.dataset.autofilled = '1';
                 matched.style.outline = '2px solid #4ec9b0';
@@ -170,21 +181,21 @@
 
     // ---------- 4. Tick ----------
     function tick() {
-        const found = getAnswers();
-        if (!found) return;
+        const q = getQuestion();
+        if (!q) return;
 
-        // Only run when the question identity changes
-        if (found.key === lastKey) return;
-        lastKey = found.key;
+        const key = getQuestionKey(q);
+        if (!key || key === lastKey) return;
+        lastKey = key;
 
-        // Clear stale "autofilled" marks from previous question
+        // Clear stale marks from previous question
         document.querySelectorAll('[data-autofilled="1"]').forEach(el => {
             el.removeAttribute('data-autofilled');
             el.style.outline = '';
         });
 
-        const inputsFilled = fillInputs(found.list);
-        const choicesClicked = clickChoices(found.list);
+        const inputsFilled = fillInputs(q);
+        const choicesClicked = clickChoices(q);
 
         if (inputsFilled || choicesClicked) {
             console.log(`[autofill] ${inputsFilled} input(s), ${choicesClicked} choice(s)`);
@@ -192,10 +203,8 @@
     }
 
     // ---------- 5. Start loop ----------
-    setInterval(tick, POLL_MS);
+    const intervalId = setInterval(tick, POLL_MS);
 
-    // Stop method (call window.__aplusAutofillStop() from console to kill it)
-    const intervalId = setInterval(() => {}, POLL_MS); // just to keep a handle
     window.__aplusAutofillStop = function () {
         clearInterval(intervalId);
         window.__aplusAutofillRunning = false;
