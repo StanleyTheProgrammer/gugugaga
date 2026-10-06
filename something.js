@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-
+    alert("新版本! \n 已加入: \n 自動答題 (mc, input, dropdown, mc mc, input v2")
     if (document.getElementById('af-root')) {
         document.getElementById('af-root').remove();
         const s = document.getElementById('af-style');
