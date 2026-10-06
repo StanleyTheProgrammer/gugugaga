@@ -21,15 +21,10 @@
                 if (!o || typeof o !== 'object' || d > 15) return null;
                 if (o.__ob__) return null;
 
-                if (o.currentQuestion && o.currentQuestion.childQuestions) {
-                    return o.currentQuestion;
-                }
-                if (o.currentQuestion && o.currentQuestion.questionId) {
-                    return o.currentQuestion;
-                }
-                if (o.childQuestions && Array.isArray(o.childQuestions)) {
-                    return o;
-                }
+                if (o.currentQuestion && o.currentQuestion.childQuestions) return o.currentQuestion;
+                if (o.currentQuestion && o.currentQuestion.questionId) return o.currentQuestion;
+                if (o.childQuestions && Array.isArray(o.childQuestions)) return o;
+
                 if (o.$data) {
                     for (const k in o.$data) {
                         const v = o.$data[k];
@@ -61,7 +56,7 @@
         return null;
     }
 
-    // ---------- 2. Fill text inputs (inside current question only) ----------
+    // ---------- 2. Fill text inputs ----------
     function fillInputs(q) {
         const card = document.querySelector('.practice_base_topic_card') || document;
         const inputs = card.querySelectorAll('textarea.ant-input');
@@ -93,13 +88,12 @@
         return filled;
     }
 
-    // ---------- 3. Click MC options (per ul group) ----------
+    // ---------- 3. Click MC options ----------
     function clickChoices(q) {
         const card = document.querySelector('.practice_base_topic_card') || document;
         const groups = card.querySelectorAll('ul.TEXT, ul.MATH, ul.CHINESE, ul.ENGLISH');
         if (!groups.length) return 0;
 
-        // Flatten all answers from childQuestions
         const answers = (q.childQuestions || [])
             .filter(c => c.questionAnswer)
             .map(c => {
@@ -112,12 +106,13 @@
 
         for (let gi = 0; gi < groups.length; gi++) {
             const ul = groups[gi];
+            // Skip dropdown option lists — those are handled separately
+            if (ul.classList.contains('options_box')) continue;
+            if (ul.closest('.select_component')) continue;
+
             const items = ul.querySelectorAll('li[class*="optionNumOneRaw"]');
             if (!items.length) continue;
 
-            // Pick the answer for this group — if there are fewer answers than
-            // groups, reuse the last one (some questions render the same choice set
-            // once per blank)
             const a = answers[gi] || answers[answers.length - 1];
             if (!a) continue;
 
@@ -132,7 +127,6 @@
                 else targetText = raw;
             }
 
-            // Try the child's own options for a correct flag
             if (!targetLetter && a.child && a.child.options) {
                 const correct = a.child.options.find(o => o.correct || o.isCorrect);
                 if (correct && correct.optionNo) targetLetter = correct.optionNo;
@@ -141,20 +135,15 @@
 
             let matched = null;
 
-            // Match by letter
             if (targetLetter) {
                 for (const li of items) {
                     const label = li.querySelector('.label span');
                     if (!label) continue;
                     const txt = label.textContent.replace(/\s|&nbsp;/g, '');
-                    if (txt === targetLetter + '.') {
-                        matched = li;
-                        break;
-                    }
+                    if (txt === targetLetter + '.') { matched = li; break; }
                 }
             }
 
-            // Fall back to text
             if (!matched && targetText) {
                 for (const li of items) {
                     const con = li.querySelector('.con span');
@@ -179,30 +168,101 @@
         return clicked;
     }
 
-    // ---------- 4. Tick ----------
-    function tick() {
-        const q = getQuestion();
-        if (!q) return;
+    // ---------- 4. Fill dropdowns ----------
+    function letterToIndex(letter) {
+        if (!letter) return -1;
+        const c = String(letter).trim().toUpperCase().charCodeAt(0);
+        if (c < 65 || c > 90) return -1;
+        return c - 65;
+    }
 
-        const key = getQuestionKey(q);
-        if (!key || key === lastKey) return;
-        lastKey = key;
+    async function fillDropdowns(q) {
+        const card = document.querySelector('.practice_base_topic_card') || document;
+        const comps = card.querySelectorAll('.select_component');
+        if (!comps.length) return 0;
 
-        // Clear stale marks from previous question
-        document.querySelectorAll('[data-autofilled="1"]').forEach(el => {
-            el.removeAttribute('data-autofilled');
-            el.style.outline = '';
-        });
+        const answers = (q.childQuestions || []).filter(c => c.questionAnswer);
+        let filled = 0;
 
-        const inputsFilled = fillInputs(q);
-        const choicesClicked = clickChoices(q);
+        for (let i = 0; i < comps.length; i++) {
+            const comp = comps[i];
+            const a = answers[i];
+            if (!a) continue;
 
-        if (inputsFilled || choicesClicked) {
-            console.log(`[autofill] ${inputsFilled} input(s), ${choicesClicked} choice(s)`);
+            const raw = Array.isArray(a.questionAnswer) ? a.questionAnswer[0] : a.questionAnswer;
+            const letter = String(raw).trim().toUpperCase();
+            const idx = letterToIndex(letter);
+            if (idx < 0) continue;
+
+            // Skip if already filled (see if the current value looks like the target)
+            const viewBox = comp.querySelector('.view_value_box');
+            const options = comp.querySelectorAll('.options_box li');
+            if (idx >= options.length) continue;
+
+            const targetText = options[idx].textContent.trim();
+
+            // If the displayed value already equals the target, skip
+            if (viewBox && viewBox.textContent.trim() === targetText) {
+                if (comp.dataset.autofilled === '1') continue;
+            }
+
+            const trigger = comp.querySelector('.select_box');
+            if (!trigger) continue;
+
+            // Open
+            trigger.click();
+            await new Promise(r => setTimeout(r, 80));
+
+            // Re-query in case DOM changed
+            const freshOptions = comp.querySelectorAll('.options_box li');
+            if (idx < freshOptions.length) {
+                freshOptions[idx].click();
+                filled++;
+            }
+
+            await new Promise(r => setTimeout(r, 80));
+        }
+
+        if (filled) {
+            comps.forEach(c => c.dataset.autofilled = '1');
+        }
+
+        return filled;
+    }
+
+    // ---------- 5. Tick ----------
+    let busy = false;
+
+    async function tick() {
+        if (busy) return;
+        busy = true;
+        try {
+            const q = getQuestion();
+            if (!q) return;
+
+            const key = getQuestionKey(q);
+            if (!key || key === lastKey) return;
+            lastKey = key;
+
+            // Clear stale marks
+            document.querySelectorAll('[data-autofilled="1"]').forEach(el => {
+                el.removeAttribute('data-autofilled');
+                el.style.outline = '';
+            });
+
+            const inputsFilled = fillInputs(q);
+            const choicesClicked = clickChoices(q);
+            const dropdownsFilled = await fillDropdowns(q);
+
+            if (inputsFilled || choicesClicked || dropdownsFilled) {
+                console.log(`[autofill] ${inputsFilled} input(s), ${choicesClicked} choice(s), ${dropdownsFilled} dropdown(s)`);
+            }
+        } finally {
+            busy = false;
         }
     }
 
-    // ---------- 5. Start loop ----------
+    // ---------- 6. Start loop ----------
     const intervalId = setInterval(tick, POLL_MS);
 
     window.__aplusAutofillStop = function () {
