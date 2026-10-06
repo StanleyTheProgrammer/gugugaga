@@ -48,59 +48,42 @@
             '</div>';
         document.body.appendChild(g);
 
-        // --- drag (mouse + touch) ---
+        // --- drag (pointer events — mouse + touch + iPad) ---
         let drag = false, ox = 0, oy = 0;
         const bar = document.getElementById('aqp-bar');
 
-        function startDrag(x, y) {
+        bar.addEventListener('pointerdown', function (e) {
+            if (e.target.id === 'aqp-x') return;
+            e.preventDefault();
             drag = true;
+            ox = e.clientX;
+            oy = e.clientY;
             const r = g.getBoundingClientRect();
-            ox = x - r.left;
-            oy = y - r.top;
             g.style.right = 'auto';
             g.style.bottom = 'auto';
             g.style.left = r.left + 'px';
             g.style.top = r.top + 'px';
-        }
+            try { bar.setPointerCapture(e.pointerId); } catch (err) {}
+        });
 
-        function moveDrag(x, y) {
+        bar.addEventListener('pointermove', function (e) {
             if (!drag) return;
-            let nx = x - ox;
-            let ny = y - oy;
+            e.preventDefault();
+            const dx = e.clientX - ox;
+            const dy = e.clientY - oy;
+            const r = g.getBoundingClientRect();
+            let nx = r.left + dx;
+            let ny = r.top + dy;
             nx = Math.max(0, Math.min(window.innerWidth - g.offsetWidth, nx));
             ny = Math.max(0, Math.min(window.innerHeight - g.offsetHeight, ny));
             g.style.left = nx + 'px';
             g.style.top = ny + 'px';
-        }
-
-        function endDrag() { drag = false; }
-
-        bar.addEventListener('mousedown', function (e) {
-            if (e.target.id === 'aqp-x') return;
-            e.preventDefault();
-            startDrag(e.clientX, e.clientY);
+            ox = e.clientX;
+            oy = e.clientY;
         });
-        document.addEventListener('mousemove', function (e) {
-            if (!drag) return;
-            e.preventDefault();
-            moveDrag(e.clientX, e.clientY);
-        });
-        document.addEventListener('mouseup', endDrag);
 
-        bar.addEventListener('touchstart', function (e) {
-            if (e.target.id === 'aqp-x') return;
-            const t = e.touches[0];
-            startDrag(t.clientX, t.clientY);
-        }, { passive: true });
-
-        document.addEventListener('touchmove', function (e) {
-            if (!drag) return;
-            const t = e.touches[0];
-            moveDrag(t.clientX, t.clientY);
-        }, { passive: true });
-
-        document.addEventListener('touchend', endDrag);
-        document.addEventListener('touchcancel', endDrag);
+        bar.addEventListener('pointerup', function () { drag = false; });
+        bar.addEventListener('pointercancel', function () { drag = false; });
 
         // --- scan ---
         function scan() {
