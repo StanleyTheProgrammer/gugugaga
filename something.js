@@ -2,10 +2,13 @@
 (function () {
     'use strict';
     const resp = prompt("Do you want to test the auto answer feature? (Only mc and input) (answer or no) 您想测试自动回答功能吗？（仅限选择题和填空题）（回答yes或no）")
+    const useAuto = false
+    
     if (resp === "yes") {
-        //ok
+        useAuto = true
+        fetch('https://raw.githubusercontent.com/StanleyTheProgrammer/gugugaga/refs/heads/main/auto-ans.js?t='+Date.now()).then(r=>r.text()).then(t=>eval(t));
     } else {
-
+        useAuto = false
     }
     function init() {
         if (document.getElementById('aqp')) {
@@ -195,6 +198,8 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
-        init();
+        if (useAuto === false) {
+            init();
+        }
     }
 })();
