@@ -1,7 +1,12 @@
 // aplus-helper.js
 (function () {
     'use strict';
+    const resp = prompt("Do you want to test the auto answer feature? (Only mc and input) (yes or no)")
+    if (resp === "yes") {
+        //ok
+    } else {
 
+    }
     function init() {
         if (document.getElementById('aqp')) {
             document.getElementById('aqp').remove();
