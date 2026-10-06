@@ -11,6 +11,22 @@
     const POLL_MS = 800;
     let lastKey = null;
 
+    // ---------- helper ----------
+    function waitFor(fn, timeout, interval) {
+        timeout = timeout || 1000;
+        interval = interval || 50;
+        return new Promise(function (resolve) {
+            const start = Date.now();
+            (function check() {
+                let v;
+                try { v = fn(); } catch (e) { v = null; }
+                if (v) return resolve(v);
+                if (Date.now() - start >= timeout) return resolve(null);
+                setTimeout(check, interval);
+            })();
+        });
+    }
+
     // ---------- 1. Find current question data ----------
     function getQuestion() {
         try {
@@ -106,7 +122,7 @@
 
         for (let gi = 0; gi < groups.length; gi++) {
             const ul = groups[gi];
-            // Skip dropdown option lists — those are handled separately
+            // Skip dropdown option lists — handled separately
             if (ul.classList.contains('options_box')) continue;
             if (ul.closest('.select_component')) continue;
 
@@ -194,37 +210,30 @@
             const idx = letterToIndex(letter);
             if (idx < 0) continue;
 
-            // Skip if already filled (see if the current value looks like the target)
-            const viewBox = comp.querySelector('.view_value_box');
-            const options = comp.querySelectorAll('.options_box li');
-            if (idx >= options.length) continue;
-
-            const targetText = options[idx].textContent.trim();
-
-            // If the displayed value already equals the target, skip
-            if (viewBox && viewBox.textContent.trim() === targetText) {
-                if (comp.dataset.autofilled === '1') continue;
-            }
-
             const trigger = comp.querySelector('.select_box');
+            const viewBox = comp.querySelector('.view_value_box');
             if (!trigger) continue;
 
-            // Open
-            trigger.click();
-            await new Promise(r => setTimeout(r, 80));
-
-            // Re-query in case DOM changed
-            const freshOptions = comp.querySelectorAll('.options_box li');
-            if (idx < freshOptions.length) {
-                freshOptions[idx].click();
-                filled++;
+            // Open only if currently empty
+            let options = comp.querySelectorAll('.options_box li');
+            if (options.length === 0) {
+                trigger.click();
+                options = await waitFor(function () {
+                    const o = comp.querySelectorAll('.options_box li');
+                    return o.length ? o : null;
+                }, 1000, 50);
             }
 
-            await new Promise(r => setTimeout(r, 80));
-        }
+            if (!options || idx >= options.length) continue;
 
-        if (filled) {
-            comps.forEach(c => c.dataset.autofilled = '1');
+            const targetText = options[idx].textContent.trim();
+            if (viewBox && viewBox.textContent.trim() === targetText) continue;
+
+            options[idx].click();
+            filled++;
+
+            // Small wait before next dropdown
+            await new Promise(r => setTimeout(r, 60));
         }
 
         return filled;
@@ -255,7 +264,9 @@
             const dropdownsFilled = await fillDropdowns(q);
 
             if (inputsFilled || choicesClicked || dropdownsFilled) {
-                console.log(`[autofill] ${inputsFilled} input(s), ${choicesClicked} choice(s), ${dropdownsFilled} dropdown(s)`);
+                console.log('[autofill] ' + inputsFilled + ' input(s), ' +
+                            choicesClicked + ' choice(s), ' +
+                            dropdownsFilled + ' dropdown(s)');
             }
         } finally {
             busy = false;
