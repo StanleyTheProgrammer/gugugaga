@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-    alert("新版本! \n 已加入: \n 自動答題 (mc, input, dropdown, mc mc, input v2")
+    alert("Version 1.2 \n ．added auto next question \n ．added auto answer latency option")
     if (document.getElementById('af-root')) {
         document.getElementById('af-root').remove();
         const s = document.getElementById('af-style');
@@ -9,213 +9,48 @@
         return;
     }
 
-    const POLL_MS = 100;
+    const POLL_MS = 800;
     let lastKey = null;
     let autoEnabled = false;
     let correctChance = 85;
+    let advanceDelay = 900;
     let busy = false;
 
     const css = `
-        #af-root {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 2147483647;
-            width: 224px;
-            background: #1c1c1e;
-            border: 1px solid #2e2e30;
-            border-radius: 10px;
-            font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-            font-size: 12px;
-            color: #e5e5e7;
-            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255,255,255,0.03) inset;
-            user-select: none;
-            -webkit-user-select: none;
-            overflow: hidden;
-        }
-        #af-root .bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 9px 12px;
-            background: #232325;
-            border-bottom: 1px solid #2e2e30;
-            cursor: move;
-            touch-action: none;
-        }
-        #af-root .bar span {
-            font-size: 11.5px;
-            font-weight: 600;
-            letter-spacing: 0.2px;
-            color: #b8b8bd;
-            pointer-events: none;
-        }
-        #af-root .bar b {
-            background: none;
-            border: none;
-            color: #6e6e73;
-            font-size: 15px;
-            font-weight: 400;
-            cursor: pointer;
-            padding: 0 2px;
-            line-height: 1;
-            transition: color 0.12s;
-            touch-action: manipulation;
-        }
-        #af-root .bar b:hover { color: #e5e5e7; }
-        #af-root .body { padding: 12px; }
-        #af-root .row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        #af-root .label {
-            font-size: 12px;
-            color: #98989d;
-            letter-spacing: 0.1px;
-        }
-        #af-root .toggle {
-            position: relative;
-            width: 36px;
-            height: 20px;
-            background: #333336;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: background 0.15s ease;
-            touch-action: manipulation;
-            flex-shrink: 0;
-        }
-        #af-root .toggle.active { background: #0a84ff; }
-        #af-root .toggle .knob {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 16px;
-            height: 16px;
-            background: #fff;
-            border-radius: 50%;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            transition: transform 0.15s ease;
-        }
-        #af-root .toggle.active .knob { transform: translateX(16px); }
-        #af-root .sliderRow {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-        #af-root .sliderVal {
-            font-size: 11.5px;
-            color: #e5e5e7;
-            font-family: "SF Mono", Consolas, Menlo, monospace;
-            font-feature-settings: "tnum";
-            min-width: 32px;
-            text-align: right;
-            letter-spacing: -0.2px;
-        }
-        #af-root input[type="range"] {
-            -webkit-appearance: none;
-            appearance: none;
-            flex: 1;
-            height: 3px;
-            background: #333336;
-            border-radius: 2px;
-            outline: none;
-            touch-action: manipulation;
-        }
-        #af-root input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 14px;
-            height: 14px;
-            background: #fff;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-            transition: transform 0.1s;
-        }
-        #af-root input[type="range"]::-webkit-slider-thumb:active {
-            transform: scale(1.1);
-        }
-        #af-root input[type="range"]::-moz-range-thumb {
-            width: 14px;
-            height: 14px;
-            background: #fff;
-            border-radius: 50%;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-        }
-        #af-root button.act {
-            width: 100%;
-            padding: 8px;
-            background: #333336;
-            color: #e5e5e7;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            font-family: inherit;
-            letter-spacing: 0.1px;
-            transition: background 0.12s;
-            touch-action: manipulation;
-        }
-        #af-root button.act:hover { background: #3d3d40; }
-        #af-root button.act:active { background: #2a2a2c; }
-        #af-root .out {
-            margin-top: 10px;
-            padding: 9px 10px;
-            background: #161618;
-            border: 1px solid #2e2e30;
-            border-radius: 6px;
-            font-family: "SF Mono", Consolas, Menlo, monospace;
-            font-size: 11px;
-            color: #d1d1d6;
-            word-break: break-all;
-            line-height: 1.5;
-            display: none;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-        #af-root .out.show { display: block; }
-        #af-root .out .lbl {
-            color: #6e6e73;
-            font-size: 9.5px;
-            text-transform: uppercase;
-            letter-spacing: 0.7px;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-        #af-root .out .val { color: #30d158; }
-        #af-root .out .err { color: #ff453a; }
-        #af-root .ans-row {
-            padding: 3px 0;
-            border-bottom: 1px solid #232325;
-        }
-        #af-root .ans-row:last-child { border-bottom: none; }
-        #af-root .ans-q {
-            color: #6e6e73;
-            margin-right: 6px;
-            font-size: 10.5px;
-        }
-        #af-root .frac {
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            vertical-align: middle;
-            margin: 0 2px;
-            line-height: 1.05;
-            color: #30d158;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 12px;
-        }
-        #af-root .frac .num { padding: 0 5px; }
-        #af-root .frac .den {
-            padding: 0 5px;
-            border-top: 1px solid #30d158;
-        }
+        #af-root{position:fixed;bottom:20px;right:20px;z-index:2147483647;width:224px;background:#1c1c1e;border:1px solid #2e2e30;border-radius:10px;font-family:-apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif;font-size:12px;color:#e5e5e7;box-shadow:0 8px 28px rgba(0,0,0,0.45),0 1px 0 rgba(255,255,255,0.03) inset;user-select:none;-webkit-user-select:none;overflow:hidden}
+        #af-root .bar{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#232325;border-bottom:1px solid #2e2e30;cursor:move;touch-action:none}
+        #af-root .bar span{font-size:11.5px;font-weight:600;letter-spacing:0.2px;color:#b8b8bd;pointer-events:none}
+        #af-root .bar b{background:none;border:none;color:#6e6e73;font-size:15px;font-weight:400;cursor:pointer;padding:0 2px;line-height:1;transition:color .12s;touch-action:manipulation}
+        #af-root .bar b:hover{color:#e5e5e7}
+        #af-root .body{padding:12px}
+        #af-root .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+        #af-root .label{font-size:12px;color:#98989d;letter-spacing:0.1px}
+        #af-root .toggle{position:relative;width:36px;height:20px;background:#333336;border-radius:10px;cursor:pointer;transition:background .15s ease;touch-action:manipulation;flex-shrink:0}
+        #af-root .toggle.active{background:#0a84ff}
+        #af-root .toggle .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,0.3);transition:transform .15s ease}
+        #af-root .toggle.active .knob{transform:translateX(16px)}
+        #af-root .sliderBlock{margin-bottom:10px}
+        #af-root .sliderHead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+        #af-root .sliderRow{display:flex;align-items:center;gap:10px}
+        #af-root .sliderVal{font-size:11.5px;color:#e5e5e7;font-family:"SF Mono",Consolas,Menlo,monospace;font-feature-settings:"tnum";min-width:44px;text-align:right;letter-spacing:-0.2px}
+        #af-root input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;height:3px;background:#333336;border-radius:2px;outline:none;touch-action:manipulation}
+        #af-root input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;background:#fff;border-radius:50%;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.4);transition:transform .1s}
+        #af-root input[type="range"]::-webkit-slider-thumb:active{transform:scale(1.1)}
+        #af-root input[type="range"]::-moz-range-thumb{width:14px;height:14px;background:#fff;border-radius:50%;cursor:pointer;border:none;box-shadow:0 1px 3px rgba(0,0,0,0.4)}
+        #af-root button.act{width:100%;padding:8px;background:#333336;color:#e5e5e7;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;font-family:inherit;letter-spacing:0.1px;transition:background .12s;touch-action:manipulation}
+        #af-root button.act:hover{background:#3d3d40}
+        #af-root button.act:active{background:#2a2a2c}
+        #af-root .out{margin-top:10px;padding:9px 10px;background:#161618;border:1px solid #2e2e30;border-radius:6px;font-family:"SF Mono",Consolas,Menlo,monospace;font-size:11px;color:#d1d1d6;word-break:break-all;line-height:1.5;display:none;max-height:150px;overflow-y:auto}
+        #af-root .out.show{display:block}
+        #af-root .out .lbl{color:#6e6e73;font-size:9.5px;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;font-weight:600}
+        #af-root .out .val{color:#30d158}
+        #af-root .out .err{color:#ff453a}
+        #af-root .ans-row{padding:3px 0;border-bottom:1px solid #232325}
+        #af-root .ans-row:last-child{border-bottom:none}
+        #af-root .ans-q{color:#6e6e73;margin-right:6px;font-size:10.5px}
+        #af-root .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;line-height:1.05;color:#30d158;font-family:Georgia,"Times New Roman",serif;font-size:12px}
+        #af-root .frac .num{padding:0 5px}
+        #af-root .frac .den{padding:0 5px;border-top:1px solid #30d158}
     `;
     const styleEl = document.createElement('style');
     styleEl.id = 'af-style';
@@ -234,9 +69,23 @@
                 <span class="label">Auto</span>
                 <div class="toggle" id="af-toggle"><div class="knob"></div></div>
             </div>
-            <div class="sliderRow">
-                <input type="range" id="af-slider" min="50" max="100" step="1" value="85">
-                <span class="sliderVal" id="af-val">85%</span>
+            <div class="sliderBlock">
+                <div class="sliderHead">
+                    <span class="label">Speed</span>
+                    <span class="sliderVal" id="af-speed-val">900ms</span>
+                </div>
+                <div class="sliderRow">
+                    <input type="range" id="af-speed" min="200" max="3000" step="50" value="900">
+                </div>
+            </div>
+            <div class="sliderBlock">
+                <div class="sliderHead">
+                    <span class="label">Correct</span>
+                    <span class="sliderVal" id="af-val">85%</span>
+                </div>
+                <div class="sliderRow">
+                    <input type="range" id="af-slider" min="50" max="100" step="1" value="85">
+                </div>
             </div>
             <button class="act" id="af-show">Show answer</button>
             <div class="out" id="af-out"></div>
@@ -248,42 +97,34 @@
     const toggle = document.getElementById('af-toggle');
     const slider = document.getElementById('af-slider');
     const sliderVal = document.getElementById('af-val');
+    const speedSlider = document.getElementById('af-speed');
+    const speedVal = document.getElementById('af-speed-val');
     const closeBtn = document.getElementById('af-x');
     const showBtn = document.getElementById('af-show');
     const outEl = document.getElementById('af-out');
 
     let drag = false, ox = 0, oy = 0;
-
     bar.addEventListener('pointerdown', function (e) {
         if (e.target.id === 'af-x') return;
         e.preventDefault();
         drag = true;
-        ox = e.clientX;
-        oy = e.clientY;
+        ox = e.clientX; oy = e.clientY;
         const r = root.getBoundingClientRect();
-        root.style.right = 'auto';
-        root.style.bottom = 'auto';
-        root.style.left = r.left + 'px';
-        root.style.top = r.top + 'px';
+        root.style.right = 'auto'; root.style.bottom = 'auto';
+        root.style.left = r.left + 'px'; root.style.top = r.top + 'px';
         try { bar.setPointerCapture(e.pointerId); } catch (err) {}
     });
-
     bar.addEventListener('pointermove', function (e) {
         if (!drag) return;
         e.preventDefault();
-        const dx = e.clientX - ox;
-        const dy = e.clientY - oy;
+        const dx = e.clientX - ox, dy = e.clientY - oy;
         const r = root.getBoundingClientRect();
-        let nx = r.left + dx;
-        let ny = r.top + dy;
+        let nx = r.left + dx, ny = r.top + dy;
         nx = Math.max(0, Math.min(window.innerWidth - root.offsetWidth, nx));
         ny = Math.max(0, Math.min(window.innerHeight - root.offsetHeight, ny));
-        root.style.left = nx + 'px';
-        root.style.top = ny + 'px';
-        ox = e.clientX;
-        oy = e.clientY;
+        root.style.left = nx + 'px'; root.style.top = ny + 'px';
+        ox = e.clientX; oy = e.clientY;
     });
-
     bar.addEventListener('pointerup', function () { drag = false; });
     bar.addEventListener('pointercancel', function () { drag = false; });
 
@@ -386,9 +227,7 @@
         let html = '<div class="lbl">Answer</div>';
         list.forEach(function (c) {
             html += '<div class="ans-row">';
-            if (list.length > 1) {
-                html += '<span class="ans-q">Q' + c.questionNo + '</span>';
-            }
+            if (list.length > 1) html += '<span class="ans-q">Q' + c.questionNo + '</span>';
             html += '<span class="val">' + renderValue(c.questionAnswer) + '</span>';
             html += '</div>';
         });
@@ -606,6 +445,19 @@
         return filled;
     }
 
+    function findNextButton() {
+        const card = document.querySelector('.practice_base_topic_card') || document;
+        const btns = card.querySelectorAll('.ael_btn');
+        for (const b of btns) {
+            if (b.textContent.includes('下一題') || b.textContent.includes('下一题')) return b;
+        }
+        const all = document.querySelectorAll('.ael_btn, button, [role="button"]');
+        for (const b of all) {
+            if (b.textContent && b.textContent.includes('下一題')) return b;
+        }
+        return null;
+    }
+
     async function tick() {
         if (!autoEnabled || busy) return;
         busy = true;
@@ -615,14 +467,21 @@
             const key = getQuestionKey(q);
             if (!key || key === lastKey) return;
             lastKey = key;
+
             document.querySelectorAll('[data-autofilled="1"]').forEach(el => {
                 el.removeAttribute('data-autofilled');
                 el.style.outline = '';
             });
+
             const forceWrong = !rollCorrect();
             fillInputs(q, forceWrong);
             clickChoices(q, forceWrong);
             await fillDropdowns(q, forceWrong);
+
+            await new Promise(r => setTimeout(r, advanceDelay));
+            if (!autoEnabled) return;
+            const next = findNextButton();
+            if (next) next.click();
         } finally {
             busy = false;
         }
@@ -636,6 +495,11 @@
     slider.addEventListener('input', function () {
         correctChance = parseInt(slider.value, 10);
         sliderVal.textContent = correctChance + '%';
+    });
+
+    speedSlider.addEventListener('input', function () {
+        advanceDelay = parseInt(speedSlider.value, 10);
+        speedVal.textContent = advanceDelay + 'ms';
     });
 
     showBtn.addEventListener('click', showAnswer);
