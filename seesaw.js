@@ -33,63 +33,63 @@
         return true;
     }
 
-    // ---------- 2. Rewrite each question textbox ----------
+    // ---------- 2. Fill and sync ----------
     function fillCanvas() {
         const fc = window.__fabricInstance;
         if (!fc) return false;
 
-        const objects = fc.getObjects();
         let fixed = 0;
-
-        objects.forEach(obj => {
+        fc.getObjects().forEach(obj => {
             if (obj.type !== 'textbox') return;
             if (obj.__answered) return;
             const text = obj.text || '';
             const m = text.match(/^(\d+)\s*[x×]\s*(\d+)\s*=\s*_+/);
             if (!m) return;
-
             const a = parseInt(m[1], 10);
             const b = parseInt(m[2], 10);
-            const answer = a * b;
-
-            obj.set('text', a + ' x ' + b + ' = ' + answer);
+            obj.set('text', a + ' x ' + b + ' = ' + (a * b));
             obj.set('dirty', true);
             obj.__answered = true;
             fixed++;
         });
 
-        if (fixed > 0) {
+        if (fixed) {
             fc.renderAll();
-            console.log('[seesaw] filled ' + fixed + ' questions');
+            // Fire events so Seesaw's internal state syncs before save
+            try { fc.getObjects().forEach(o => fc.fire('object:modified', { target: o })); } catch (e) {}
+            const upper = document.querySelector('.upper-canvas');
+            if (upper) {
+                ['mousedown', 'mouseup', 'mousemove'].forEach(type => {
+                    upper.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }));
+                });
+            }
+            console.log('[seesaw] filled ' + fixed + ' + synced');
             return true;
         }
-
-        // If questions aren't loaded yet, keep polling
         return false;
     }
 
     // ---------- 3. Kick off ----------
     if (!installHook()) {
-        let tries = 0;
+        let t = 0;
         const iv = setInterval(() => {
-            if (installHook() || ++tries > 100) clearInterval(iv);
+            if (installHook() || ++t > 100) clearInterval(iv);
         }, 100);
     }
 
-    let fillTries = 0;
-    const fillIv = setInterval(() => {
+    let ft = 0;
+    const fiv = setInterval(() => {
         if (!window.__fabricInstance) {
-            if (++fillTries > 240) {
-                clearInterval(fillIv);
+            if (++ft > 240) {
+                clearInterval(fiv);
                 console.log('[seesaw] gave up — no canvas after 2 min');
             }
             return;
         }
-        const done = fillCanvas();
-        if (done) {
-            clearInterval(fillIv);
-            console.log('[seesaw] done');
+        if (fillCanvas()) {
+            clearInterval(fiv);
             window.__seesawRunning = false;
+            console.log('[seesaw] done + synced');
         }
     }, 500);
 })();
