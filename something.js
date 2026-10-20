@@ -11,9 +11,6 @@
   };
   const ADMIN_USERNAME = "cat_here";
 
-  // ══════════════════════════════════════════
-  // Firebase loader
-  // ══════════════════════════════════════════
   async function loadFirebase() {
     const appMod = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
     const authMod = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
@@ -22,9 +19,6 @@
     return { auth: authMod.getAuth(app), db: dbMod.getFirestore(app), authMod, dbMod };
   }
 
-  // ══════════════════════════════════════════
-  // Styles
-  // ══════════════════════════════════════════
   const css = `
     #af-auth-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2147483648; display: flex; align-items: center; justify-content: center; font-family: -apple-system, sans-serif; }
     #af-auth-box { background: #1c1c1e; padding: 24px; border-radius: 12px; width: 300px; color: #fff; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
@@ -153,9 +147,6 @@
     .af-fab.admin { top: 10px; left: 130px; background: #ff453a; color: #fff; }
   `;
 
-  // ══════════════════════════════════════════
-  // Troll effects
-  // ══════════════════════════════════════════
   function triggerTroll(action) {
     document.body.style.animation = "";
     document.body.style.transform = "";
@@ -250,9 +241,6 @@
     }
   }
 
-  // ══════════════════════════════════════════
-  // Auth + startup
-  // ══════════════════════════════════════════
   async function initAuth() {
     const style = document.createElement("style");
     style.textContent = css;
@@ -285,7 +273,6 @@
       }
     }
 
-    // Login / Register modal
     const modal = document.createElement("div");
     modal.id = "af-auth-modal";
     modal.innerHTML = `
@@ -346,7 +333,6 @@
           startHack(finalUid, u, db, dbMod, auth, authMod);
 
         } else {
-          // Register
           let deviceId = localStorage.getItem("aplus_device_id");
           if (!deviceId) {
             deviceId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
@@ -382,9 +368,6 @@
     };
   }
 
-  // ══════════════════════════════════════════
-  // Migration: repair stale usernames/{u}.uid
-  // ══════════════════════════════════════════
   async function runUidMigration(db, dbMod) {
     if (sessionStorage.getItem("af_migration_done") === "1") return;
     console.log("[migration] scanning users for stale uid...");
@@ -419,22 +402,19 @@
     }
   }
 
-  // ══════════════════════════════════════════
-  // Main startup per logged-in user
-  // ══════════════════════════════════════════
   function startHack(uid, username, db, dbMod, auth, authMod) {
     console.log(`[auth] Logged in as ${username}`);
 
-    // Self-heal: saved uid must match live auth uid
     const realUid = auth.currentUser ? auth.currentUser.uid : null;
     if (realUid && realUid !== uid) {
       console.warn("[auth] uid mismatch — saved:", uid, "real:", realUid, "→ resyncing");
       uid = realUid;
       localStorage.setItem("aplus_saved_user", JSON.stringify({ uid: realUid, username }));
-      dbMod.updateDoc(dbMod.doc(db, "usernames", username), { uid: realUid }).catch(() => {});
+      dbMod.updateDoc(dbMod.doc(db, "usernames", username), { uid: realUid })
+        .then(() => console.log("[auth] usernames/" + username + " uid resynced to " + realUid))
+        .catch(e => console.warn("[auth] usernames uid resync failed:", e.code, e.message));
     }
 
-    // Watchdog: localStorage cleared mid-session → clean logout
     if (window.__afLcWatch) clearInterval(window.__afLcWatch);
     window.__afLcWatch = setInterval(() => {
       if (!localStorage.getItem("aplus_saved_user")) {
@@ -443,17 +423,14 @@
       }
     }, 2000);
 
-    // Admin-only: auto-migrate all stale username uids
     if (username === ADMIN_USERNAME) runUidMigration(db, dbMod);
 
     let isMod = false;
 
-    // Heartbeat
     setInterval(async () => {
       try { await dbMod.updateDoc(dbMod.doc(db, "users", uid), { lastSeen: Date.now() }); } catch (e) {}
     }, 15000);
 
-    // Ban check
     setInterval(async () => {
       try {
         const snap = await dbMod.getDoc(dbMod.doc(db, "users", uid));
@@ -474,7 +451,6 @@
       } catch (e) {}
     }, 3000);
 
-    // Troll command listener
     dbMod.onSnapshot(dbMod.doc(db, "commands", uid), docSnap => {
       if (!docSnap.exists()) return;
       const data = docSnap.data();
@@ -492,9 +468,6 @@
     }
   }
 
-  // ══════════════════════════════════════════
-  // Autofill GUI (core mechanic — DO NOT TOUCH)
-  // ══════════════════════════════════════════
   function injectAplusGUI(uid, username, db, dbMod, onAuto, onShow) {
     if (document.getElementById("af-root")) return;
 
@@ -538,7 +511,6 @@
     let lastKey = null;
     let busy = false;
 
-    // Draggable bar
     bar.addEventListener("pointerdown", e => {
       if (e.target.id === "af-x") return;
       e.preventDefault();
@@ -581,7 +553,6 @@
       });
     }
 
-    // Vue tree walk → live question payload
     function getQuestion() {
       try {
         const app = document.getElementById("app");
@@ -665,7 +636,6 @@
       dbMod.updateDoc(dbMod.doc(db, "users", uid), { showStats: dbMod.increment(1) }).catch(() => {});
     });
 
-    // Text fill
     function fillInputs(q, forceWrong) {
       const card = document.querySelector(".practice_base_topic_card") || document;
       const inputs = card.querySelectorAll("textarea.ant-input");
@@ -701,7 +671,6 @@
       return original;
     }
 
-    // Multi-choice fill
     function clickChoices(q, forceWrong) {
       const card = document.querySelector(".practice_base_topic_card") || document;
       const groups = card.querySelectorAll("ul.TEXT, ul.MATH, ul.CHINESE, ul.ENGLISH");
@@ -820,7 +789,6 @@
       return clicked;
     }
 
-    // Dropdown fill
     async function fillDropdowns(q, forceWrong) {
       const card = document.querySelector(".practice_base_topic_card") || document;
       const comps = card.querySelectorAll(".select_component");
@@ -943,9 +911,6 @@
     setInterval(tick, 800);
   }
 
-  // ══════════════════════════════════════════
-  // Profile search panel
-  // ══════════════════════════════════════════
   async function injectProfilePanel(uid, db, dbMod) {
     const existing = document.getElementById("af-profile-panel");
     if (existing) { existing.remove(); return; }
@@ -994,13 +959,9 @@
     });
   }
 
-  // ══════════════════════════════════════════
-  // Chat panel (everyone: global + groups)
-  // ══════════════════════════════════════════
   function injectChatPanel(uid, username, db, dbMod) {
     if (document.getElementById("af-chat-fab")) return;
 
-    // Floating Chat button
     const fab = document.createElement("button");
     fab.className = "af-fab chat";
     fab.id = "af-chat-fab";
@@ -1064,7 +1025,6 @@
       document.body.appendChild(panel);
       document.getElementById("af-chat-close").onclick = () => panel.remove();
 
-      // Draggable header
       let isPanelDragging = false, panelX = 0, panelY = 0;
       const header = document.getElementById("af-chat-header");
       header.addEventListener("pointerdown", e => {
@@ -1083,7 +1043,6 @@
       header.addEventListener("pointerup", () => isPanelDragging = false);
       header.addEventListener("pointercancel", () => isPanelDragging = false);
 
-      // Tabs
       panel.querySelectorAll(".af-tab").forEach(tab => {
         tab.onclick = () => {
           panel.querySelectorAll(".af-tab").forEach(t => t.classList.remove("active"));
@@ -1094,7 +1053,6 @@
         };
       });
 
-      // ── Global chat ──
       const chatBox = document.getElementById("af-chat-box");
       const chatForm = document.getElementById("af-chat-form");
       const chatInput = document.getElementById("af-chat-input");
@@ -1120,7 +1078,6 @@
         chatBox.scrollTop = chatBox.scrollHeight;
       });
 
-      // Cached isMod (no read-before-write)
       let isModCached = false;
       dbMod.onSnapshot(dbMod.doc(db, "users", uid), s => {
         if (s.exists()) isModCached = !!s.data().isMod;
@@ -1132,7 +1089,6 @@
         if (!text) return;
         chatInput.value = "";
 
-        // Optimistic local echo
         const localDiv = document.createElement("div");
         localDiv.className = "af-chat-msg";
         localDiv.style.opacity = "0.6";
@@ -1156,7 +1112,6 @@
         }
       };
 
-      // ── Groups ──
       const groupListEl = document.getElementById("af-group-list");
       const groupView = document.getElementById("af-group-view");
       const groupViewTitle = document.getElementById("af-group-view-title");
@@ -1423,9 +1378,6 @@
     };
   }
 
-  // ══════════════════════════════════════════
-  // Admin panel (troll / ban / mod)
-  // ══════════════════════════════════════════
   function injectAdminPanel(db, dbMod, myUsername) {
     if (document.getElementById("af-admin-fab")) return;
 
@@ -1567,13 +1519,9 @@
     };
   }
 
-  // ══════════════════════════════════════════
-  // Shared helper (top-level)
-  // ══════════════════════════════════════════
   function escapeHtml(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  // Start
   initAuth();
 }();
