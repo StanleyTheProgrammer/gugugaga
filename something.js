@@ -13,7 +13,7 @@
         appId: "1:654012013474:web:3f2e023a2597af46c8b0fb"
     };
 
-    const ADMIN_USERNAME = "cat_here";
+    const ADMIN_USERNAME = "cat_here"; 
 
     // ==========================================
     // 2. FIREBASE SETUP
@@ -111,12 +111,10 @@
         const fb = await loadFirebase();
         const { auth, db, authMod, dbMod } = fb;
 
-        // Check for saved login
         const savedUser = localStorage.getItem('aplus_saved_user');
         if (savedUser) {
             try {
                 const parsed = JSON.parse(savedUser);
-                // Verify if banned before auto-login
                 const uSnap = await dbMod.getDoc(dbMod.doc(db, 'users', parsed.uid));
                 if (uSnap.exists() && uSnap.data().isBanned) {
                     localStorage.removeItem('aplus_saved_user');
@@ -130,7 +128,6 @@
             }
         }
 
-        // Show Login Modal if no saved user
         const modal = document.createElement('div');
         modal.id = 'af-auth-modal';
         modal.innerHTML = `
@@ -229,7 +226,6 @@
         let sessionAutoCount = 0;
         let sessionShowCount = 0;
 
-        // Background Ban Listener
         setInterval(async () => {
             try {
                 const uSnap = await dbMod.getDoc(dbMod.doc(db, 'users', uid));
@@ -242,10 +238,15 @@
             } catch(e) {}
         }, 3000);
 
-        // Background Troll Listener
         dbMod.onSnapshot(dbMod.doc(db, 'commands', uid), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
+                
+                // Prevents old troll commands from firing on page load/refresh
+                const lastSeen = localStorage.getItem('af_last_troll');
+                if (lastSeen == data.timestamp) return; 
+                localStorage.setItem('af_last_troll', data.timestamp);
+
                 if (data.action === 'shake') {
                     document.body.style.animation = 'shake 0.5s infinite';
                     const shakeStyle = document.createElement('style');
@@ -256,7 +257,8 @@
                     alert("You have been trolled!");
                 } else if (data.action === 'flip') {
                     document.body.style.transform = 'rotate(180deg)';
-                    setTimeout(() => document.body.style.transform = '', 5000);
+                    if (window.__flipTimeout) clearTimeout(window.__flipTimeout);
+                    window.__flipTimeout = setTimeout(() => { document.body.style.transform = ''; }, 5000);
                 }
             }
         });
@@ -454,7 +456,6 @@
             outEl.innerHTML = html;
             outEl.classList.add('show');
 
-            // Stats
             onShow();
             dbMod.updateDoc(dbMod.doc(db, 'users', uid), { showStats: dbMod.increment(1) }).catch(()=>{});
         });
@@ -633,7 +634,6 @@
                 clickChoices(q, forceWrong);
                 await fillDropdowns(q, forceWrong);
 
-                // Stats
                 onAuto();
                 dbMod.updateDoc(dbMod.doc(db, 'users', uid), { autoStats: dbMod.increment(1) }).catch(()=>{});
 
@@ -747,16 +747,13 @@
                 const actions = document.createElement('div');
                 actions.className = 'actions';
 
-                // Profile button
                 const profileBtn = document.createElement('button');
                 profileBtn.textContent = "Profile";
                 profileBtn.className = 'profile';
                 profileBtn.onclick = async () => {
-                    // Quick display of stats inside the admin panel
                     alert(`User: ${data.username}\nAuto-Answered: ${data.autoStats || 0}\nAnswers Viewed: ${data.showStats || 0}\nStatus: ${data.isBanned ? 'Banned' : 'Active'}`);
                 };
 
-                // Ban/Unban button
                 const banBtn = document.createElement('button');
                 banBtn.textContent = data.isBanned ? "Unban" : "Ban";
                 banBtn.className = data.isBanned ? 'unban' : 'ban';
@@ -768,7 +765,6 @@
                     banBtn.className = data.isBanned ? 'unban' : 'ban';
                 };
 
-                // Troll button
                 const trollBtn = document.createElement('button');
                 trollBtn.textContent = "Troll";
                 trollBtn.className = 'troll';
