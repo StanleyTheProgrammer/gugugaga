@@ -14,7 +14,7 @@
     };
 
     // CHANGE THIS TO YOUR USERNAME TO GET ADMIN POWERS
-    const ADMIN_USERNAME = "your_username_here"; 
+    const ADMIN_USERNAME = "cat_here"; 
 
     // ==========================================
     // 2. FIREBASE SETUP
