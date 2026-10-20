@@ -13,7 +13,7 @@
         appId: "1:654012013474:web:3f2e023a2597af46c8b0fb"
     };
 
-    const ADMIN_USERNAME = "your_username_here"; 
+    const ADMIN_USERNAME = "cat_here";
 
     // ==========================================
     // 2. FIREBASE SETUP
