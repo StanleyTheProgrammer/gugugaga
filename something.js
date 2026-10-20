@@ -1,22 +1,71 @@
 (function () {
     'use strict';
-    alert("Version 1.2 \n ．added auto next question \n ．added auto answer latency option")
-    if (document.getElementById('af-root')) {
-        document.getElementById('af-root').remove();
-        const s = document.getElementById('af-style');
-        if (s) s.remove();
-        if (window.__afStop) window.__afStop();
-        return;
+
+    // ==========================================
+    // 1. CONFIGURATION
+    // ==========================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyDd15smQKX5BWWlQ3PjzZ6cEi18P7zKeWg",
+        authDomain: "aplus-5383f.firebaseapp.com",
+        projectId: "aplus-5383f",
+        storageBucket: "aplus-5383f.firebasestorage.app",
+        messagingSenderId: "654012013474",
+        appId: "1:654012013474:web:3f2e023a2597af46c8b0fb"
+    };
+
+    // CHANGE THIS TO YOUR USERNAME TO GET ADMIN POWERS
+    const ADMIN_USERNAME = "your_username_here"; 
+
+    // ==========================================
+    // 2. FIREBASE SETUP
+    // ==========================================
+    async function loadFirebase() {
+        const appMod = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
+        const authMod = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
+        const dbMod = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+        const app = appMod.initializeApp(firebaseConfig);
+        return { auth: authMod.getAuth(app), db: dbMod.getFirestore(app), authMod, dbMod };
     }
 
-    const POLL_MS = 800;
-    let lastKey = null;
-    let autoEnabled = false;
-    let correctChance = 85;
-    let advanceDelay = 900;
-    let busy = false;
+    function getDeviceId() {
+        let id = localStorage.getItem('aplus_device_id');
+        if (!id) {
+            id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+            localStorage.setItem('aplus_device_id', id);
+        }
+        return id;
+    }
 
+    // ==========================================
+    // 3. STYLES (AUTH, ADMIN, APLUS GUI)
+    // ==========================================
     const css = `
+        /* Auth Modal */
+        #af-auth-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2147483648; display: flex; align-items: center; justify-content: center; font-family: -apple-system, sans-serif; }
+        #af-auth-box { background: #1c1c1e; padding: 24px; border-radius: 12px; width: 300px; color: #fff; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #af-auth-box h2 { margin: 0 0 16px 0; font-size: 18px; text-align: center; color: #e5e5e7; }
+        #af-auth-box input { width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 6px; color: #fff; font-size: 14px; outline: none; }
+        #af-auth-box input:focus { border-color: #0a84ff; }
+        #af-auth-box button { width: 100%; padding: 10px; margin-top: 6px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        #af-auth-btn { background: #0a84ff; color: #fff; }
+        #af-auth-btn:hover { background: #0070d8; }
+        #af-auth-switch { background: transparent; color: #98989d; font-weight: normal; font-size: 12px; margin-top: 12px; }
+        #af-auth-switch:hover { color: #fff; }
+        #af-error { color: #ff453a; font-size: 12px; text-align: center; margin-bottom: 10px; min-height: 14px; }
+
+        /* Admin Panel */
+        #af-admin-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 20px; z-index: 2147483649; width: 450px; max-height: 80vh; overflow-y: auto; color: #fff; font-family: -apple-system, sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #af-admin-panel h2 { margin-top: 0; color: #ff453a; }
+        .af-user-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #333; font-size: 14px; }
+        .af-user-row .actions { display: flex; gap: 6px; }
+        .af-user-row button { color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .af-user-row button.ban { background: #ff453a; }
+        .af-user-row button.unban { background: #30d158; }
+        .af-user-row button.troll { background: #bf5af2; }
+        #af-admin-close { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #98989d; cursor: pointer; font-size: 18px; }
+        #af-troll-select { width: 100%; padding: 8px; margin-bottom: 10px; background: #2c2c2e; color: #fff; border: 1px solid #3a3a3c; border-radius: 6px; }
+
+        /* Aplus Cheat GUI */
         #af-root{position:fixed;bottom:20px;right:20px;z-index:2147483647;width:224px;background:#1c1c1e;border:1px solid #2e2e30;border-radius:10px;font-family:-apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif;font-size:12px;color:#e5e5e7;box-shadow:0 8px 28px rgba(0,0,0,0.45),0 1px 0 rgba(255,255,255,0.03) inset;user-select:none;-webkit-user-select:none;overflow:hidden}
         #af-root .bar{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#232325;border-bottom:1px solid #2e2e30;cursor:move;touch-action:none}
         #af-root .bar span{font-size:11.5px;font-weight:600;letter-spacing:0.2px;color:#b8b8bd;pointer-events:none}
@@ -52,467 +101,585 @@
         #af-root .frac .num{padding:0 5px}
         #af-root .frac .den{padding:0 5px;border-top:1px solid #30d158}
     `;
-    const styleEl = document.createElement('style');
-    styleEl.id = 'af-style';
-    styleEl.textContent = css;
-    document.head.appendChild(styleEl);
 
-    const root = document.createElement('div');
-    root.id = 'af-root';
-    root.innerHTML = `
-        <div class="bar" id="af-bar">
-            <span>Autofill</span>
-            <b id="af-x">&times;</b>
-        </div>
-        <div class="body">
-            <div class="row">
-                <span class="label">Auto</span>
-                <div class="toggle" id="af-toggle"><div class="knob"></div></div>
+    // ==========================================
+    // 4. AUTH LOGIC
+    // ==========================================
+    async function initAuth() {
+        const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+        const fb = await loadFirebase();
+        const { auth, db, authMod, dbMod } = fb;
+
+        const modal = document.createElement('div');
+        modal.id = 'af-auth-modal';
+        modal.innerHTML = `
+            <div id="af-auth-box">
+                <h2 id="af-auth-title">Login</h2>
+                <div id="af-error"></div>
+                <input type="text" id="af-username" placeholder="Username" autocomplete="off">
+                <input type="password" id="af-password" placeholder="Password (max 20 chars)" maxlength="20">
+                <button id="af-auth-btn">Login</button>
+                <button id="af-auth-switch">Need an account? Register</button>
             </div>
-            <div class="sliderBlock">
-                <div class="sliderHead">
-                    <span class="label">Speed</span>
-                    <span class="sliderVal" id="af-speed-val">900ms</span>
-                </div>
-                <div class="sliderRow">
-                    <input type="range" id="af-speed" min="200" max="3000" step="50" value="900">
-                </div>
-            </div>
-            <div class="sliderBlock">
-                <div class="sliderHead">
-                    <span class="label">Correct</span>
-                    <span class="sliderVal" id="af-val">85%</span>
-                </div>
-                <div class="sliderRow">
-                    <input type="range" id="af-slider" min="50" max="100" step="1" value="85">
-                </div>
-            </div>
-            <button class="act" id="af-show">Show answer</button>
-            <div class="out" id="af-out"></div>
-        </div>
-    `;
-    document.body.appendChild(root);
+        `;
+        document.body.appendChild(modal);
 
-    const bar = document.getElementById('af-bar');
-    const toggle = document.getElementById('af-toggle');
-    const slider = document.getElementById('af-slider');
-    const sliderVal = document.getElementById('af-val');
-    const speedSlider = document.getElementById('af-speed');
-    const speedVal = document.getElementById('af-speed-val');
-    const closeBtn = document.getElementById('af-x');
-    const showBtn = document.getElementById('af-show');
-    const outEl = document.getElementById('af-out');
+        let isLogin = true;
+        document.getElementById('af-auth-switch').onclick = () => {
+            isLogin = !isLogin;
+            document.getElementById('af-auth-title').textContent = isLogin ? 'Login' : 'Create Account';
+            document.getElementById('af-auth-btn').textContent = isLogin ? 'Login' : 'Register';
+            document.getElementById('af-auth-switch').textContent = isLogin ? 'Need an account? Register' : 'Already have an account? Login';
+            document.getElementById('af-error').textContent = '';
+        };
 
-    let drag = false, ox = 0, oy = 0;
-    bar.addEventListener('pointerdown', function (e) {
-        if (e.target.id === 'af-x') return;
-        e.preventDefault();
-        drag = true;
-        ox = e.clientX; oy = e.clientY;
-        const r = root.getBoundingClientRect();
-        root.style.right = 'auto'; root.style.bottom = 'auto';
-        root.style.left = r.left + 'px'; root.style.top = r.top + 'px';
-        try { bar.setPointerCapture(e.pointerId); } catch (err) {}
-    });
-    bar.addEventListener('pointermove', function (e) {
-        if (!drag) return;
-        e.preventDefault();
-        const dx = e.clientX - ox, dy = e.clientY - oy;
-        const r = root.getBoundingClientRect();
-        let nx = r.left + dx, ny = r.top + dy;
-        nx = Math.max(0, Math.min(window.innerWidth - root.offsetWidth, nx));
-        ny = Math.max(0, Math.min(window.innerHeight - root.offsetHeight, ny));
-        root.style.left = nx + 'px'; root.style.top = ny + 'px';
-        ox = e.clientX; oy = e.clientY;
-    });
-    bar.addEventListener('pointerup', function () { drag = false; });
-    bar.addEventListener('pointercancel', function () { drag = false; });
+        document.getElementById('af-auth-btn').onclick = async () => {
+            const u = document.getElementById('af-username').value.trim().toLowerCase();
+            const p = document.getElementById('af-password').value;
+            const errDiv = document.getElementById('af-error');
+            const btn = document.getElementById('af-auth-btn');
 
-    function waitFor(fn, timeout, interval) {
-        timeout = timeout || 1000;
-        interval = interval || 50;
-        return new Promise(function (resolve) {
-            const start = Date.now();
-            (function check() {
-                let v;
-                try { v = fn(); } catch (e) { v = null; }
-                if (v) return resolve(v);
-                if (Date.now() - start >= timeout) return resolve(null);
-                setTimeout(check, interval);
-            })();
-        });
+            if (!u || !p) return errDiv.textContent = "Fill all fields.";
+            if (p.length > 20) return errDiv.textContent = "Password max 20 chars.";
+
+            btn.disabled = true; errDiv.textContent = "Processing...";
+
+            try {
+                const usernameRef = dbMod.doc(db, 'usernames', u);
+
+                if (isLogin) {
+                    const snap = await dbMod.getDoc(usernameRef);
+                    if (!snap.exists()) throw new Error("Account not found.");
+                    const data = snap.data();
+                    if (data.password !== p) throw new Error("Wrong password.");
+
+                    await authMod.signInAnonymously(auth);
+
+                    const userRef = dbMod.doc(db, 'users', data.uid);
+                    const uSnap = await dbMod.getDoc(userRef);
+                    if (uSnap.exists() && uSnap.data().isBanned) {
+                        await authMod.signOut(auth);
+                        throw new Error("This account is BANNED.");
+                    }
+
+                    modal.remove();
+                    startHack(data.uid, u, db, dbMod, auth, authMod);
+
+                } else {
+                    const devId = getDeviceId();
+                    const devRef = dbMod.doc(db, 'devices', devId);
+                    const dSnap = await dbMod.getDoc(devRef);
+                    if (dSnap.exists()) throw new Error("This device is already registered.");
+                    const uSnap = await dbMod.getDoc(usernameRef);
+                    if (uSnap.exists()) throw new Error("Username taken.");
+
+                    const cred = await authMod.signInAnonymously(auth);
+                    const uid = cred.user.uid;
+
+                    await dbMod.setDoc(usernameRef, { uid, password: p });
+                    await dbMod.setDoc(devRef, { uid });
+                    await dbMod.setDoc(dbMod.doc(db, 'users', uid), { username: u, isBanned: false, createdAt: Date.now() });
+
+                    modal.remove();
+                    startHack(uid, u, db, dbMod, auth, authMod);
+                }
+            } catch (e) {
+                errDiv.textContent = e.message;
+            } finally {
+                btn.disabled = false;
+            }
+        };
     }
 
-    function getQuestion() {
-        try {
-            const app = document.getElementById('app');
-            if (!app || !app.__vue__) return null;
-            function walk(o, d) {
-                if (!o || typeof o !== 'object' || d > 15) return null;
-                if (o.__ob__) return null;
-                if (o.currentQuestion && o.currentQuestion.childQuestions) return o.currentQuestion;
-                if (o.currentQuestion && o.currentQuestion.questionId) return o.currentQuestion;
-                if (o.childQuestions && Array.isArray(o.childQuestions)) return o;
-                if (o.$data) {
-                    for (const k in o.$data) {
-                        const v = o.$data[k];
-                        if (v && typeof v === 'object') {
-                            const r = walk(v, d + 1);
+    // ==========================================
+    // 5. MAIN HACK LOGIC
+    // ==========================================
+    function startHack(uid, username, db, dbMod, auth, authMod) {
+        console.log(`[auth] Logged in as ${username}`);
+
+        // --- BACKGROUND BAN LISTENER ---
+        setInterval(async () => {
+            try {
+                const uSnap = await dbMod.getDoc(dbMod.doc(db, 'users', uid));
+                if (uSnap.exists() && uSnap.data().isBanned) {
+                    alert("You have been BANNED by the admin.");
+                    await authMod.signOut(auth);
+                    location.reload();
+                }
+            } catch(e) {}
+        }, 3000);
+
+        // --- BACKGROUND TROLL LISTENER ---
+        dbMod.onSnapshot(dbMod.doc(db, 'commands', uid), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.action === 'shake') {
+                    document.body.style.animation = 'shake 0.5s infinite';
+                    const shakeStyle = document.createElement('style');
+                    shakeStyle.textContent = `@keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }`;
+                    document.head.appendChild(shakeStyle);
+                    setTimeout(() => document.body.style.animation = '', 5000);
+                } else if (data.action === 'alert') {
+                    alert("You have been trolled!");
+                } else if (data.action === 'flip') {
+                    document.body.style.transform = 'rotate(180deg)';
+                    setTimeout(() => document.body.style.transform = '', 5000);
+                }
+            }
+        });
+
+        // --- ADMIN PANEL ---
+        if (username === ADMIN_USERNAME) {
+            injectAdminPanel(db, dbMod);
+        }
+
+        // --- APLUS CHEAT GUI ---
+        injectAplusGUI();
+    }
+
+    // ==========================================
+    // 6. APLUS CHEAT GUI (Full Logic)
+    // ==========================================
+    function injectAplusGUI() {
+        if (document.getElementById('af-root')) return; // Already injected
+
+        const root = document.createElement('div');
+        root.id = 'af-root';
+        root.innerHTML = `
+            <div class="bar" id="af-bar">
+                <span>Autofill</span>
+                <b id="af-x">&times;</b>
+            </div>
+            <div class="body">
+                <div class="row">
+                    <span class="label">Auto</span>
+                    <div class="toggle" id="af-toggle"><div class="knob"></div></div>
+                </div>
+                <div class="sliderBlock">
+                    <div class="sliderHead">
+                        <span class="label">Speed</span>
+                        <span class="sliderVal" id="af-speed-val">900ms</span>
+                    </div>
+                    <div class="sliderRow">
+                        <input type="range" id="af-speed" min="200" max="3000" step="50" value="900">
+                    </div>
+                </div>
+                <div class="sliderBlock">
+                    <div class="sliderHead">
+                        <span class="label">Correct</span>
+                        <span class="sliderVal" id="af-val">85%</span>
+                    </div>
+                    <div class="sliderRow">
+                        <input type="range" id="af-slider" min="50" max="100" step="1" value="85">
+                    </div>
+                </div>
+                <button class="act" id="af-show">Show answer</button>
+                <div class="out" id="af-out"></div>
+            </div>
+        `;
+        document.body.appendChild(root);
+
+        const bar = document.getElementById('af-bar');
+        const toggle = document.getElementById('af-toggle');
+        const slider = document.getElementById('af-slider');
+        const sliderVal = document.getElementById('af-val');
+        const speedSlider = document.getElementById('af-speed');
+        const speedVal = document.getElementById('af-speed-val');
+        const closeBtn = document.getElementById('af-x');
+        const showBtn = document.getElementById('af-show');
+        const outEl = document.getElementById('af-out');
+
+        let drag = false, ox = 0, oy = 0;
+        let autoEnabled = false;
+        let correctChance = 85;
+        let advanceDelay = 900;
+        let lastKey = null;
+        let busy = false;
+
+        bar.addEventListener('pointerdown', function (e) {
+            if (e.target.id === 'af-x') return;
+            e.preventDefault();
+            drag = true;
+            ox = e.clientX; oy = e.clientY;
+            const r = root.getBoundingClientRect();
+            root.style.right = 'auto'; root.style.bottom = 'auto';
+            root.style.left = r.left + 'px'; root.style.top = r.top + 'px';
+            try { bar.setPointerCapture(e.pointerId); } catch (err) {}
+        });
+        bar.addEventListener('pointermove', function (e) {
+            if (!drag) return;
+            e.preventDefault();
+            const dx = e.clientX - ox, dy = e.clientY - oy;
+            const r = root.getBoundingClientRect();
+            let nx = r.left + dx, ny = r.top + dy;
+            nx = Math.max(0, Math.min(window.innerWidth - root.offsetWidth, nx));
+            ny = Math.max(0, Math.min(window.innerHeight - root.offsetHeight, ny));
+            root.style.left = nx + 'px'; root.style.top = ny + 'px';
+            ox = e.clientX; oy = e.clientY;
+        });
+        bar.addEventListener('pointerup', function () { drag = false; });
+        bar.addEventListener('pointercancel', function () { drag = false; });
+
+        function waitFor(fn, timeout, interval) {
+            timeout = timeout || 1000; interval = interval || 50;
+            return new Promise(function (resolve) {
+                const start = Date.now();
+                (function check() {
+                    let v; try { v = fn(); } catch (e) { v = null; }
+                    if (v) return resolve(v);
+                    if (Date.now() - start >= timeout) return resolve(null);
+                    setTimeout(check, interval);
+                })();
+            });
+        }
+
+        function getQuestion() {
+            try {
+                const app = document.getElementById('app');
+                if (!app || !app.__vue__) return null;
+                function walk(o, d) {
+                    if (!o || typeof o !== 'object' || d > 15) return null;
+                    if (o.__ob__) return null;
+                    if (o.currentQuestion && o.currentQuestion.childQuestions) return o.currentQuestion;
+                    if (o.currentQuestion && o.currentQuestion.questionId) return o.currentQuestion;
+                    if (o.childQuestions && Array.isArray(o.childQuestions)) return o;
+                    if (o.$data) {
+                        for (const k in o.$data) {
+                            const v = o.$data[k];
+                            if (v && typeof v === 'object') {
+                                const r = walk(v, d + 1);
+                                if (r) return r;
+                            }
+                        }
+                    }
+                    if (o.$children) {
+                        for (const c of o.$children) {
+                            const r = walk(c, d + 1);
                             if (r) return r;
                         }
                     }
+                    return null;
                 }
-                if (o.$children) {
-                    for (const c of o.$children) {
-                        const r = walk(c, d + 1);
-                        if (r) return r;
-                    }
-                }
-                return null;
+                return walk(app.__vue__, 0);
+            } catch (e) { return null; }
+        }
+
+        function getQuestionKey(q) {
+            if (!q) return null;
+            if (q.questionId) return q.questionId;
+            if (q.childQuestions) return JSON.stringify(q.childQuestions.map(x => x.questionAnswer));
+            return null;
+        }
+
+        function rollCorrect() { return Math.random() * 100 < correctChance; }
+
+        function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        function renderValue(raw) {
+            if (Array.isArray(raw)) raw = raw.join(' ; ');
+            raw = String(raw);
+            const re = /\$\$\s*\\+frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}\s*\$\$/g;
+            const parts = [];
+            let last = 0, m, found = false;
+            while ((m = re.exec(raw)) !== null) {
+                found = true;
+                parts.push(esc(raw.slice(last, m.index)));
+                parts.push('<span class="frac"><span class="num">' + esc(m[1]) + '</span><span class="den">' + esc(m[2]) + '</span></span>');
+                last = re.lastIndex;
             }
-            return walk(app.__vue__, 0);
-        } catch (e) { return null; }
-    }
-
-    function getQuestionKey(q) {
-        if (!q) return null;
-        if (q.questionId) return q.questionId;
-        if (q.childQuestions) return JSON.stringify(q.childQuestions.map(x => x.questionAnswer));
-        return null;
-    }
-
-    function rollCorrect() {
-        return Math.random() * 100 < correctChance;
-    }
-
-    function esc(s) {
-        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    function renderValue(raw) {
-        if (Array.isArray(raw)) raw = raw.join(' ; ');
-        raw = String(raw);
-        const re = /\$\$\s*\\+frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}\s*\$\$/g;
-        const parts = [];
-        let last = 0, m, found = false;
-        while ((m = re.exec(raw)) !== null) {
-            found = true;
-            parts.push(esc(raw.slice(last, m.index)));
-            parts.push(
-                '<span class="frac">' +
-                    '<span class="num">' + esc(m[1]) + '</span>' +
-                    '<span class="den">' + esc(m[2]) + '</span>' +
-                '</span>'
-            );
-            last = re.lastIndex;
+            if (!found) return esc(raw);
+            parts.push(esc(raw.slice(last)));
+            return parts.join('');
         }
-        if (!found) return esc(raw);
-        parts.push(esc(raw.slice(last)));
-        return parts.join('');
-    }
 
-    function showAnswer() {
-        const q = getQuestion();
-        if (!q || !q.childQuestions || !q.childQuestions.length) {
-            outEl.innerHTML = '<div class="lbl">Result</div><div class="err">No question found.</div>';
+        function showAnswer() {
+            const q = getQuestion();
+            if (!q || !q.childQuestions || !q.childQuestions.length) {
+                outEl.innerHTML = '<div class="lbl">Result</div><div class="err">No question found.</div>';
+                outEl.classList.add('show'); return;
+            }
+            const list = q.childQuestions.filter(c => c.questionAnswer);
+            if (!list.length) {
+                outEl.innerHTML = '<div class="lbl">Result</div><div class="err">No answer found.</div>';
+                outEl.classList.add('show'); return;
+            }
+            let html = '<div class="lbl">Answer</div>';
+            list.forEach(function (c) {
+                html += '<div class="ans-row">';
+                if (list.length > 1) html += '<span class="ans-q">Q' + c.questionNo + '</span>';
+                html += '<span class="val">' + renderValue(c.questionAnswer) + '</span></div>';
+            });
+            outEl.innerHTML = html;
             outEl.classList.add('show');
-            return;
         }
-        const list = q.childQuestions.filter(c => c.questionAnswer);
-        if (!list.length) {
-            outEl.innerHTML = '<div class="lbl">Result</div><div class="err">No answer found.</div>';
-            outEl.classList.add('show');
-            return;
-        }
-        let html = '<div class="lbl">Answer</div>';
-        list.forEach(function (c) {
-            html += '<div class="ans-row">';
-            if (list.length > 1) html += '<span class="ans-q">Q' + c.questionNo + '</span>';
-            html += '<span class="val">' + renderValue(c.questionAnswer) + '</span>';
-            html += '</div>';
-        });
-        outEl.innerHTML = html;
-        outEl.classList.add('show');
-    }
 
-    function fillInputs(q, forceWrong) {
-        const card = document.querySelector('.practice_base_topic_card') || document;
-        const inputs = card.querySelectorAll('textarea.ant-input');
-        if (!inputs.length) return 0;
-        const answers = (q.childQuestions || []).filter(c => c.questionAnswer);
-        let filled = 0;
-        for (let i = 0; i < inputs.length; i++) {
-            const input = inputs[i];
-            const a = answers[i];
-            if (!a) break;
-            let val = a.questionAnswer;
-            if (Array.isArray(val)) val = val[0];
-            if (typeof val !== 'string') val = String(val);
-            if (forceWrong) val = randomWrongText(val);
-            if (input.value === val) continue;
-            input.focus();
-            input.value = val;
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-            input.blur();
-            input.style.outline = '2px solid ' + (forceWrong ? '#ff453a' : '#30d158');
-            filled++;
+        function fillInputs(q, forceWrong) {
+            const card = document.querySelector('.practice_base_topic_card') || document;
+            const inputs = card.querySelectorAll('textarea.ant-input');
+            if (!inputs.length) return 0;
+            const answers = (q.childQuestions || []).filter(c => c.questionAnswer);
+            let filled = 0;
+            for (let i = 0; i < inputs.length; i++) {
+                const input = inputs[i]; const a = answers[i]; if (!a) break;
+                let val = a.questionAnswer;
+                if (Array.isArray(val)) val = val[0];
+                if (typeof val !== 'string') val = String(val);
+                if (forceWrong) val = randomWrongText(val);
+                if (input.value === val) continue;
+                input.focus(); input.value = val;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.blur();
+                input.style.outline = '2px solid ' + (forceWrong ? '#ff453a' : '#30d158');
+                filled++;
+            }
+            return filled;
         }
-        return filled;
-    }
 
-    function randomWrongText(original) {
-        if (/^-?\d+(\.\d+)?$/.test(original)) {
-            const n = parseFloat(original);
-            const delta = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.floor(Math.random() * 5));
-            return String(n + delta);
+        function randomWrongText(original) {
+            if (/^-?\d+(\.\d+)?$/.test(original)) {
+                const n = parseFloat(original);
+                const delta = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.floor(Math.random() * 5));
+                return String(n + delta);
+            }
+            return original;
         }
-        return original;
-    }
 
-    function clickChoices(q, forceWrong) {
-        const card = document.querySelector('.practice_base_topic_card') || document;
-        const groups = card.querySelectorAll('ul.TEXT, ul.MATH, ul.CHINESE, ul.ENGLISH');
-        if (!groups.length) return 0;
-        const answers = (q.childQuestions || [])
-            .filter(c => c.questionAnswer)
-            .map(c => {
+        function clickChoices(q, forceWrong) {
+            const card = document.querySelector('.practice_base_topic_card') || document;
+            const groups = card.querySelectorAll('ul.TEXT, ul.MATH, ul.CHINESE, ul.ENGLISH');
+            if (!groups.length) return 0;
+            const answers = (q.childQuestions || []).filter(c => c.questionAnswer).map(c => {
                 let raw = c.questionAnswer;
                 if (Array.isArray(raw)) raw = raw.join(';');
                 return { raw: String(raw), child: c };
             });
-        let clicked = 0;
-        for (let gi = 0; gi < groups.length; gi++) {
-            const ul = groups[gi];
-            if (ul.classList.contains('options_box')) continue;
-            if (ul.closest('.select_component')) continue;
-            const items = ul.querySelectorAll('li[class*="optionNumOneRaw"]');
-            if (!items.length) continue;
-            const a = answers[gi] || answers[answers.length - 1];
-            if (!a) continue;
-            const targetLetters = [];
-            const targetTexts = [];
-            const raw = a.raw;
-            if (raw) {
-                if (/[;|,]/.test(raw)) {
-                    raw.split(/[;|,]/).forEach(part => {
-                        const t = part.trim().toUpperCase();
-                        if (t) targetLetters.push(t);
+            let clicked = 0;
+            for (let gi = 0; gi < groups.length; gi++) {
+                const ul = groups[gi];
+                if (ul.classList.contains('options_box') || ul.closest('.select_component')) continue;
+                const items = ul.querySelectorAll('li[class*="optionNumOneRaw"]');
+                if (!items.length) continue;
+                const a = answers[gi] || answers[answers.length - 1];
+                if (!a) continue;
+                const targetLetters = []; const targetTexts = [];
+                const raw = a.raw;
+                if (raw) {
+                    if (/[;|,]/.test(raw)) {
+                        raw.split(/[;|,]/).forEach(part => { const t = part.trim().toUpperCase(); if (t) targetLetters.push(t); });
+                    } else if (/^\s*[A-Z]\s*$/.test(raw)) targetLetters.push(raw.trim().toUpperCase());
+                    else if (/^[A-Z]{2,}$/.test(raw.trim())) raw.trim().toUpperCase().split('').forEach(l => targetLetters.push(l));
+                    else targetTexts.push(raw);
+                }
+                if (!targetLetters.length && !targetTexts.length && a.child && a.child.options) {
+                    a.child.options.forEach(o => {
+                        if (o.correct || o.isCorrect) {
+                            if (o.optionNo) targetLetters.push(String(o.optionNo).toUpperCase());
+                            else if (o.optionContent) targetTexts.push(String(o.optionContent).trim());
+                        }
                     });
-                } else if (/^\s*[A-Z]\s*$/.test(raw)) {
-                    targetLetters.push(raw.trim().toUpperCase());
-                } else if (/^[A-Z]{2,}$/.test(raw.trim())) {
-                    raw.trim().toUpperCase().split('').forEach(l => targetLetters.push(l));
-                } else {
-                    targetTexts.push(raw);
                 }
-            }
-            if (!targetLetters.length && !targetTexts.length && a.child && a.child.options) {
-                a.child.options.forEach(o => {
-                    if (o.correct || o.isCorrect) {
-                        if (o.optionNo) targetLetters.push(String(o.optionNo).toUpperCase());
-                        else if (o.optionContent) targetTexts.push(String(o.optionContent).trim());
-                    }
-                });
-            }
-            const allLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-            const correctIdxs = [];
-            targetLetters.forEach(l => {
-                const idx = allLetters.indexOf(l.toUpperCase());
-                if (idx >= 0) correctIdxs.push(idx);
-            });
-            let wrongIdxList = [];
-            if (forceWrong) {
-                const pool = [];
-                for (let i = 0; i < items.length; i++) {
-                    if (!correctIdxs.includes(i)) pool.push(i);
-                }
-                const need = Math.max(1, correctIdxs.length);
-                for (let i = 0; i < need && pool.length; i++) {
-                    const pick = Math.floor(Math.random() * pool.length);
-                    wrongIdxList.push(pool[pick]);
-                    pool.splice(pick, 1);
-                }
-            }
-            if (!forceWrong) {
-                for (const letter of targetLetters) {
-                    const letterUpper = letter.toUpperCase();
-                    let matched = null;
-                    for (const li of items) {
-                        const label = li.querySelector('.label span');
-                        if (!label) continue;
-                        const txt = label.textContent.replace(/\s|&nbsp;/g, '');
-                        if (txt === letterUpper + '.') { matched = li; break; }
-                    }
-                    if (!matched) {
-                        const idx = letterUpper.charCodeAt(0) - 65;
-                        if (idx >= 0 && idx < items.length) matched = items[idx];
-                    }
-                    if (matched) {
-                        if (matched.dataset.autofilled === '1') continue;
-                        matched.click();
-                        matched.dataset.autofilled = '1';
-                        matched.style.outline = '2px solid #30d158';
-                        clicked++;
+                const allLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                const correctIdxs = []; targetLetters.forEach(l => { const idx = allLetters.indexOf(l.toUpperCase()); if (idx >= 0) correctIdxs.push(idx); });
+                let wrongIdxList = [];
+                if (forceWrong) {
+                    const pool = []; for (let i = 0; i < items.length; i++) { if (!correctIdxs.includes(i)) pool.push(i); }
+                    const need = Math.max(1, correctIdxs.length);
+                    for (let i = 0; i < need && pool.length; i++) {
+                        const pick = Math.floor(Math.random() * pool.length); wrongIdxList.push(pool[pick]); pool.splice(pick, 1);
                     }
                 }
-            }
-            for (const wi of wrongIdxList) {
-                const li = items[wi];
-                if (!li) continue;
-                if (li.dataset.autofilled === '1') continue;
-                li.click();
-                li.dataset.autofilled = '1';
-                li.style.outline = '2px solid #ff453a';
-                clicked++;
-            }
-            if (!forceWrong) {
-                for (const text of targetTexts) {
-                    for (const li of items) {
-                        const con = li.querySelector('.con span') || li.querySelector('.con');
-                        if (!con) continue;
-                        const txt = con.textContent.trim();
-                        if (txt === text || txt.includes(text) || text.includes(txt)) {
-                            if (li.dataset.autofilled === '1') break;
-                            li.click();
-                            li.dataset.autofilled = '1';
-                            li.style.outline = '2px solid #30d158';
-                            clicked++;
-                            break;
+                if (!forceWrong) {
+                    for (const letter of targetLetters) {
+                        const letterUpper = letter.toUpperCase();
+                        let matched = null;
+                        for (const li of items) {
+                            const label = li.querySelector('.label span');
+                            if (label && label.textContent.replace(/\s|&nbsp;/g, '') === letterUpper + '.') { matched = li; break; }
+                        }
+                        if (!matched) { const idx = letterUpper.charCodeAt(0) - 65; if (idx >= 0 && idx < items.length) matched = items[idx]; }
+                        if (matched && matched.dataset.autofilled !== '1') {
+                            matched.click(); matched.dataset.autofilled = '1';
+                            matched.style.outline = '2px solid #30d158'; clicked++;
+                        }
+                    }
+                }
+                for (const wi of wrongIdxList) {
+                    const li = items[wi]; if (!li || li.dataset.autofilled === '1') continue;
+                    li.click(); li.dataset.autofilled = '1'; li.style.outline = '2px solid #ff453a'; clicked++;
+                }
+                if (!forceWrong) {
+                    for (const text of targetTexts) {
+                        for (const li of items) {
+                            const con = li.querySelector('.con span') || li.querySelector('.con');
+                            if (con && (con.textContent.trim() === text || con.textContent.trim().includes(text) || text.includes(con.textContent.trim()))) {
+                                if (li.dataset.autofilled === '1') break;
+                                li.click(); li.dataset.autofilled = '1'; li.style.outline = '2px solid #30d158'; clicked++; break;
+                            }
                         }
                     }
                 }
             }
+            return clicked;
         }
-        return clicked;
+
+        async function fillDropdowns(q, forceWrong) {
+            const card = document.querySelector('.practice_base_topic_card') || document;
+            const comps = card.querySelectorAll('.select_component');
+            if (!comps.length) return 0;
+            const answers = (q.childQuestions || []).filter(c => c.questionAnswer);
+            let filled = 0;
+            for (let i = 0; i < comps.length; i++) {
+                const comp = comps[i]; const a = answers[i]; if (!a) continue;
+                let raw = Array.isArray(a.questionAnswer) ? a.questionAnswer[0] : a.questionAnswer;
+                let letter = String(raw).trim().toUpperCase();
+                if (forceWrong && a.options && a.options.length > 1) {
+                    const alternatives = a.options.map(o => o.optionNo).filter(n => n !== letter);
+                    if (alternatives.length) letter = alternatives[Math.floor(Math.random() * alternatives.length)];
+                }
+                let targetContent = null;
+                if (a.options && Array.isArray(a.options)) {
+                    const opt = a.options.find(o => o.optionNo === letter);
+                    if (opt) targetContent = String(opt.optionContent).trim();
+                }
+                if (!targetContent) continue;
+                let lis = comp.querySelectorAll('.options_box li');
+                if (lis.length === 0) {
+                    const vue = comp.__vue__;
+                    if (vue && vue.$data && 'flag' in vue.$data) { vue.$data.flag = true; if (vue.$forceUpdate) vue.$forceUpdate(); }
+                    else { const trigger = comp.querySelector('.select_box'); if (trigger) trigger.click(); }
+                    lis = await waitFor(function () { const o = comp.querySelectorAll('.options_box li'); return o.length ? o : null; }, 1500, 60);
+                }
+                if (!lis || !lis.length) continue;
+                let target = null;
+                for (const li of lis) { if (li.textContent.trim() === targetContent) { target = li; break; } }
+                if (!target) {
+                    const norm = targetContent.replace(/\s+/g, '');
+                    for (const li of lis) { if (li.textContent.replace(/\s+/g, '') === norm) { target = li; break; } }
+                }
+                if (!target) continue;
+                target.click(); filled++; await new Promise(r => setTimeout(r, 100));
+            }
+            return filled;
+        }
+
+        function findNextButton() {
+            const card = document.querySelector('.practice_base_topic_card') || document;
+            const btns = card.querySelectorAll('.ael_btn');
+            for (const b of btns) { if (b.textContent.includes('下一題') || b.textContent.includes('下一题')) return b; }
+            const all = document.querySelectorAll('.ael_btn, button, [role="button"]');
+            for (const b of all) { if (b.textContent && b.textContent.includes('下一題')) return b; }
+            return null;
+        }
+
+        async function tick() {
+            if (!autoEnabled || busy) return;
+            busy = true;
+            try {
+                const q = getQuestion();
+                if (!q) return;
+                const key = getQuestionKey(q);
+                if (!key || key === lastKey) return;
+                lastKey = key;
+                document.querySelectorAll('[data-autofilled="1"]').forEach(el => { el.removeAttribute('data-autofilled'); el.style.outline = ''; });
+                const forceWrong = !rollCorrect();
+                fillInputs(q, forceWrong);
+                clickChoices(q, forceWrong);
+                await fillDropdowns(q, forceWrong);
+                await new Promise(r => setTimeout(r, advanceDelay));
+                if (!autoEnabled) return;
+                const next = findNextButton();
+                if (next) next.click();
+            } finally { busy = false; }
+        }
+
+        toggle.addEventListener('click', function () { autoEnabled = !autoEnabled; toggle.classList.toggle('active', autoEnabled); });
+        slider.addEventListener('input', function () { correctChance = parseInt(slider.value, 10); sliderVal.textContent = correctChance + '%'; });
+        speedSlider.addEventListener('input', function () { advanceDelay = parseInt(speedSlider.value, 10); speedVal.textContent = advanceDelay + 'ms'; });
+        showBtn.addEventListener('click', showAnswer);
+        closeBtn.addEventListener('click', function () { root.remove(); });
+
+        setInterval(tick, 800);
     }
 
-    async function fillDropdowns(q, forceWrong) {
-        const card = document.querySelector('.practice_base_topic_card') || document;
-        const comps = card.querySelectorAll('.select_component');
-        if (!comps.length) return 0;
-        const answers = (q.childQuestions || []).filter(c => c.questionAnswer);
-        let filled = 0;
-        for (let i = 0; i < comps.length; i++) {
-            const comp = comps[i];
-            const a = answers[i];
-            if (!a) continue;
-            let raw = Array.isArray(a.questionAnswer) ? a.questionAnswer[0] : a.questionAnswer;
-            let letter = String(raw).trim().toUpperCase();
-            if (forceWrong && a.options && a.options.length > 1) {
-                const alternatives = a.options.map(o => o.optionNo).filter(n => n !== letter);
-                if (alternatives.length) {
-                    letter = alternatives[Math.floor(Math.random() * alternatives.length)];
-                }
-            }
-            let targetContent = null;
-            if (a.options && Array.isArray(a.options)) {
-                const opt = a.options.find(o => o.optionNo === letter);
-                if (opt) targetContent = String(opt.optionContent).trim();
-            }
-            if (!targetContent) continue;
-            let lis = comp.querySelectorAll('.options_box li');
-            if (lis.length === 0) {
-                const vue = comp.__vue__;
-                if (vue && vue.$data && 'flag' in vue.$data) {
-                    vue.$data.flag = true;
-                    if (vue.$forceUpdate) vue.$forceUpdate();
-                } else {
-                    const trigger = comp.querySelector('.select_box');
-                    if (trigger) trigger.click();
-                }
-                lis = await waitFor(function () {
-                    const o = comp.querySelectorAll('.options_box li');
-                    return o.length ? o : null;
-                }, 1500, 60);
-            }
-            if (!lis || !lis.length) continue;
-            let target = null;
-            for (const li of lis) {
-                if (li.textContent.trim() === targetContent) { target = li; break; }
-            }
-            if (!target) {
-                const norm = targetContent.replace(/\s+/g, '');
-                for (const li of lis) {
-                    if (li.textContent.replace(/\s+/g, '') === norm) { target = li; break; }
-                }
-            }
-            if (!target) continue;
-            target.click();
-            filled++;
-            await new Promise(r => setTimeout(r, 100));
-        }
-        return filled;
-    }
+    // ==========================================
+    // 7. ADMIN PANEL (Ban + Troll)
+    // ==========================================
+    function injectAdminPanel(db, dbMod) {
+        const btn = document.createElement('button');
+        btn.textContent = "Admin Panel";
+        btn.style = "position:fixed; top:10px; left:10px; z-index:99999; padding:10px; background:red; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;";
+        document.body.appendChild(btn);
 
-    function findNextButton() {
-        const card = document.querySelector('.practice_base_topic_card') || document;
-        const btns = card.querySelectorAll('.ael_btn');
-        for (const b of btns) {
-            if (b.textContent.includes('下一題') || b.textContent.includes('下一题')) return b;
-        }
-        const all = document.querySelectorAll('.ael_btn, button, [role="button"]');
-        for (const b of all) {
-            if (b.textContent && b.textContent.includes('下一題')) return b;
-        }
-        return null;
-    }
+        btn.onclick = async () => {
+            const panel = document.createElement('div');
+            panel.id = 'af-admin-panel';
+            panel.innerHTML = `
+                <button id="af-admin-close">&times;</button>
+                <h2>Admin Panel</h2>
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size:12px; color:#aaa;">Troll Tool (Select effect, then click Troll on a user):</label>
+                    <select id="af-troll-select">
+                        <option value="shake">Shake Screen</option>
+                        <option value="alert">Random Alert</option>
+                        <option value="flip">Flip Screen</option>
+                    </select>
+                </div>
+                <div id="af-admin-list">Loading users...</div>
+            `;
+            document.body.appendChild(panel);
+            document.getElementById('af-admin-close').onclick = () => panel.remove();
 
-    async function tick() {
-        if (!autoEnabled || busy) return;
-        busy = true;
-        try {
-            const q = getQuestion();
-            if (!q) return;
-            const key = getQuestionKey(q);
-            if (!key || key === lastKey) return;
-            lastKey = key;
+            const listDiv = document.getElementById('af-admin-list');
+            const snap = await dbMod.getDocs(dbMod.collection(db, 'users'));
+            
+            listDiv.innerHTML = '';
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const uid = docSnap.id;
 
-            document.querySelectorAll('[data-autofilled="1"]').forEach(el => {
-                el.removeAttribute('data-autofilled');
-                el.style.outline = '';
+                const row = document.createElement('div');
+                row.className = 'af-user-row';
+                
+                const name = document.createElement('span');
+                name.textContent = data.username + (data.isBanned ? " (Banned)" : "");
+                
+                const actions = document.createElement('div');
+                actions.className = 'actions';
+
+                const banBtn = document.createElement('button');
+                banBtn.textContent = data.isBanned ? "Unban" : "Ban";
+                banBtn.className = data.isBanned ? 'unban' : 'ban';
+                banBtn.onclick = async () => {
+                    await dbMod.updateDoc(dbMod.doc(db, 'users', uid), { isBanned: !data.isBanned });
+                    data.isBanned = !data.isBanned;
+                    name.textContent = data.username + (data.isBanned ? " (Banned)" : "");
+                    banBtn.textContent = data.isBanned ? "Unban" : "Ban";
+                    banBtn.className = data.isBanned ? 'unban' : 'ban';
+                };
+
+                const trollBtn = document.createElement('button');
+                trollBtn.textContent = "Troll";
+                trollBtn.className = 'troll';
+                trollBtn.onclick = async () => {
+                    const effect = document.getElementById('af-troll-select').value;
+                    await dbMod.setDoc(dbMod.doc(db, 'commands', uid), { action: effect, timestamp: Date.now() });
+                    trollBtn.textContent = "Sent!";
+                    setTimeout(() => trollBtn.textContent = "Troll", 2000);
+                };
+
+                actions.appendChild(banBtn);
+                actions.appendChild(trollBtn);
+                row.appendChild(name);
+                row.appendChild(actions);
+                listDiv.appendChild(row);
             });
-
-            const forceWrong = !rollCorrect();
-            fillInputs(q, forceWrong);
-            clickChoices(q, forceWrong);
-            await fillDropdowns(q, forceWrong);
-
-            await new Promise(r => setTimeout(r, advanceDelay));
-            if (!autoEnabled) return;
-            const next = findNextButton();
-            if (next) next.click();
-        } finally {
-            busy = false;
-        }
+        };
     }
 
-    toggle.addEventListener('click', function () {
-        autoEnabled = !autoEnabled;
-        toggle.classList.toggle('active', autoEnabled);
-    });
+    // ==========================================
+    // 8. START
+    // ==========================================
+    initAuth();
 
-    slider.addEventListener('input', function () {
-        correctChance = parseInt(slider.value, 10);
-        sliderVal.textContent = correctChance + '%';
-    });
-
-    speedSlider.addEventListener('input', function () {
-        advanceDelay = parseInt(speedSlider.value, 10);
-        speedVal.textContent = advanceDelay + 'ms';
-    });
-
-    showBtn.addEventListener('click', showAnswer);
-
-    closeBtn.addEventListener('click', function () {
-        root.remove();
-        styleEl.remove();
-        clearInterval(intervalId);
-    });
-
-    const intervalId = setInterval(tick, POLL_MS);
-
-    window.__afStop = function () {
-        clearInterval(intervalId);
-    };
 })();
