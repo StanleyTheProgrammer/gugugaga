@@ -110,7 +110,7 @@
     `;
 
     // ==========================================
-    // 4. TROLL EFFECTS LOGIC
+    // 4. TROLL EFFECTS LOGIC (Fixed Assets)
     // ==========================================
     function triggerTroll(action) {
         document.body.style.animation = '';
@@ -157,9 +157,11 @@
             const overlay = document.createElement('div');
             overlay.id = 'af-troll-overlay';
             overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; display:flex; justify-content:center; align-items:center; background:black;";
-            overlay.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Openclipart_Scary_Face.svg/1200px-Openclipart_Scary_Face.svg.png" style="width:80vh; filter:invert(1) sepia(1) saturate(10) hue-rotate(-50deg);">';
+            // Using a reliable image CDN
+            overlay.innerHTML = '<img src="https://i.imgur.com/L8wJt7k.jpeg" style="width:100vh; object-fit:cover;">';
             document.body.appendChild(overlay);
-            const scream = new Audio('https://www.myinstants.com/media/sounds/screaming-sheep.mp3');
+            // Reliable scream sound
+            const scream = new Audio('https://www.soundjay.com/human/sounds/scream-01.mp3');
             scream.play().catch(()=>{});
             setTimeout(() => overlay.remove(), 3000);
         }
@@ -182,9 +184,9 @@
             document.body.style.filter = 'contrast(200%) grayscale(100%) brightness(50%)';
             const overlay = document.createElement('div');
             overlay.id = 'af-troll-overlay';
-            overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; background:url('https://media.giphy.com/media/oEI9uWUEXye36/giphy.gif') center/cover; opacity:0.8;";
+            overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; background:url('https://i.gifer.com/7E2x.gif') center/cover; opacity:0.8;";
             document.body.appendChild(overlay);
-            const scream = new Audio('https://www.myinstants.com/media/sounds/static-noise.mp3');
+            const scream = new Audio('https://www.soundjay.com/misc/sounds/static-1.mp3');
             scream.play().catch(()=>{});
             setTimeout(() => { overlay.remove(); document.body.style.filter = ''; }, 3000);
         }
@@ -222,7 +224,6 @@
                 const parsed = JSON.parse(savedUser);
                 const uSnap = await dbMod.getDoc(dbMod.doc(db, 'users', parsed.uid));
                 if (uSnap.exists() && uSnap.data().isBanned) {
-                    // If it's the admin, auto-unban them
                     if (parsed.username === ADMIN_USERNAME) {
                         await dbMod.updateDoc(dbMod.doc(db, 'users', parsed.uid), { isBanned: false });
                     } else {
