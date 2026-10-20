@@ -110,7 +110,7 @@
     `;
 
     // ==========================================
-    // 4. TROLL EFFECTS LOGIC (Fixed Assets)
+    // 4. TROLL EFFECTS LOGIC
     // ==========================================
     function triggerTroll(action) {
         document.body.style.animation = '';
@@ -157,12 +157,8 @@
             const overlay = document.createElement('div');
             overlay.id = 'af-troll-overlay';
             overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; display:flex; justify-content:center; align-items:center; background:black;";
-            // Using a reliable image CDN
-            overlay.innerHTML = '<img src="https://i.imgur.com/L8wJt7k.jpeg" style="width:100vh; object-fit:cover;">';
+            overlay.innerHTML = '<img src="https://raw.githubusercontent.com/StanleyTheProgrammer/gugugaga/main/scary.jpeg" style="width:100vh; object-fit:cover;">';
             document.body.appendChild(overlay);
-            // Reliable scream sound
-            const scream = new Audio('https://www.soundjay.com/human/sounds/scream-01.mp3');
-            scream.play().catch(()=>{});
             setTimeout(() => overlay.remove(), 3000);
         }
 
@@ -836,7 +832,7 @@
         document.body.appendChild(btn);
 
         btn.onclick = async () => {
-            if (btnMoved) return; // If they dragged it, don't open/close the panel
+            if (btnMoved) return;
 
             const existing = document.getElementById('af-admin-panel');
             if (existing) { 
@@ -861,7 +857,7 @@
                             <option value="alert">Random Alert</option>
                             <option value="troll_cursor">Spooky Cursor</option>
                             <option value="troll_zoom">Infinite Zoom</option>
-                            <option value="scary_face">Scary Face + Scream</option>
+                            <option value="scary_face">Scary Face</option>
                             <option value="scary_blood">Blood Overlay</option>
                             <option value="scary_invert">Inverted Colors</option>
                             <option value="scary_static">Static Noise + Scream</option>
