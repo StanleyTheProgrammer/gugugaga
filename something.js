@@ -13,8 +13,7 @@
         appId: "1:654012013474:web:3f2e023a2597af46c8b0fb"
     };
 
-    // CHANGE THIS TO YOUR USERNAME TO GET ADMIN POWERS
-    const ADMIN_USERNAME = "cat_here"; 
+    const ADMIN_USERNAME = "your_username_here"; 
 
     // ==========================================
     // 2. FIREBASE SETUP
@@ -37,10 +36,9 @@
     }
 
     // ==========================================
-    // 3. STYLES (AUTH, ADMIN, APLUS GUI)
+    // 3. STYLES
     // ==========================================
     const css = `
-        /* Auth Modal */
         #af-auth-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2147483648; display: flex; align-items: center; justify-content: center; font-family: -apple-system, sans-serif; }
         #af-auth-box { background: #1c1c1e; padding: 24px; border-radius: 12px; width: 300px; color: #fff; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         #af-auth-box h2 { margin: 0 0 16px 0; font-size: 18px; text-align: center; color: #e5e5e7; }
@@ -53,7 +51,6 @@
         #af-auth-switch:hover { color: #fff; }
         #af-error { color: #ff453a; font-size: 12px; text-align: center; margin-bottom: 10px; min-height: 14px; }
 
-        /* Admin Panel */
         #af-admin-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 20px; z-index: 2147483649; width: 450px; max-height: 80vh; overflow-y: auto; color: #fff; font-family: -apple-system, sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         #af-admin-panel h2 { margin-top: 0; color: #ff453a; }
         .af-user-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #333; font-size: 14px; }
@@ -62,10 +59,10 @@
         .af-user-row button.ban { background: #ff453a; }
         .af-user-row button.unban { background: #30d158; }
         .af-user-row button.troll { background: #bf5af2; }
+        .af-user-row button.profile { background: #0a84ff; }
         #af-admin-close { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #98989d; cursor: pointer; font-size: 18px; }
-        #af-troll-select { width: 100%; padding: 8px; margin-bottom: 10px; background: #2c2c2e; color: #fff; border: 1px solid #3a3a3c; border-radius: 6px; }
+        #af-troll-select, #af-search { width: 100%; padding: 8px; margin-bottom: 10px; background: #2c2c2e; color: #fff; border: 1px solid #3a3a3c; border-radius: 6px; box-sizing: border-box; }
 
-        /* Aplus Cheat GUI */
         #af-root{position:fixed;bottom:20px;right:20px;z-index:2147483647;width:224px;background:#1c1c1e;border:1px solid #2e2e30;border-radius:10px;font-family:-apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif;font-size:12px;color:#e5e5e7;box-shadow:0 8px 28px rgba(0,0,0,0.45),0 1px 0 rgba(255,255,255,0.03) inset;user-select:none;-webkit-user-select:none;overflow:hidden}
         #af-root .bar{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#232325;border-bottom:1px solid #2e2e30;cursor:move;touch-action:none}
         #af-root .bar span{font-size:11.5px;font-weight:600;letter-spacing:0.2px;color:#b8b8bd;pointer-events:none}
@@ -86,7 +83,7 @@
         #af-root input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;background:#fff;border-radius:50%;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.4);transition:transform .1s}
         #af-root input[type="range"]::-webkit-slider-thumb:active{transform:scale(1.1)}
         #af-root input[type="range"]::-moz-range-thumb{width:14px;height:14px;background:#fff;border-radius:50%;cursor:pointer;border:none;box-shadow:0 1px 3px rgba(0,0,0,0.4)}
-        #af-root button.act{width:100%;padding:8px;background:#333336;color:#e5e5e7;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;font-family:inherit;letter-spacing:0.1px;transition:background .12s;touch-action:manipulation}
+        #af-root button.act{width:100%;padding:8px;background:#333336;color:#e5e5e7;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;font-family:inherit;letter-spacing:0.1px;transition:background .12s;touch-action:manipulation;margin-bottom:6px}
         #af-root button.act:hover{background:#3d3d40}
         #af-root button.act:active{background:#2a2a2c}
         #af-root .out{margin-top:10px;padding:9px 10px;background:#161618;border:1px solid #2e2e30;border-radius:6px;font-family:"SF Mono",Consolas,Menlo,monospace;font-size:11px;color:#d1d1d6;word-break:break-all;line-height:1.5;display:none;max-height:150px;overflow-y:auto}
@@ -100,16 +97,40 @@
         #af-root .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;line-height:1.05;color:#30d158;font-family:Georgia,"Times New Roman",serif;font-size:12px}
         #af-root .frac .num{padding:0 5px}
         #af-root .frac .den{padding:0 5px;border-top:1px solid #30d158}
+        
+        .af-profile-card { background: #1c1c1e; border: 1px solid #333; padding: 15px; border-radius: 8px; margin-top: 10px; text-align: center; }
+        .af-profile-card h3 { margin: 0 0 5px 0; color: #0a84ff; }
+        .af-profile-stats { font-size: 13px; color: #ccc; margin-top: 10px; }
     `;
 
     // ==========================================
-    // 4. AUTH LOGIC
+    // 4. AUTH & LOCAL STORAGE
     // ==========================================
     async function initAuth() {
         const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
         const fb = await loadFirebase();
         const { auth, db, authMod, dbMod } = fb;
 
+        // Check for saved login
+        const savedUser = localStorage.getItem('aplus_saved_user');
+        if (savedUser) {
+            try {
+                const parsed = JSON.parse(savedUser);
+                // Verify if banned before auto-login
+                const uSnap = await dbMod.getDoc(dbMod.doc(db, 'users', parsed.uid));
+                if (uSnap.exists() && uSnap.data().isBanned) {
+                    localStorage.removeItem('aplus_saved_user');
+                    throw new Error("Account Banned.");
+                }
+                await authMod.signInAnonymously(auth);
+                startHack(parsed.uid, parsed.username, db, dbMod, auth, authMod);
+                return;
+            } catch (e) {
+                console.log("Auto-login failed", e);
+            }
+        }
+
+        // Show Login Modal if no saved user
         const modal = document.createElement('div');
         modal.id = 'af-auth-modal';
         modal.innerHTML = `
@@ -162,6 +183,7 @@
                         throw new Error("This account is BANNED.");
                     }
 
+                    localStorage.setItem('aplus_saved_user', JSON.stringify({ uid: data.uid, username: u }));
                     modal.remove();
                     startHack(data.uid, u, db, dbMod, auth, authMod);
 
@@ -178,8 +200,15 @@
 
                     await dbMod.setDoc(usernameRef, { uid, password: p });
                     await dbMod.setDoc(devRef, { uid });
-                    await dbMod.setDoc(dbMod.doc(db, 'users', uid), { username: u, isBanned: false, createdAt: Date.now() });
+                    await dbMod.setDoc(dbMod.doc(db, 'users', uid), { 
+                        username: u, 
+                        isBanned: false, 
+                        createdAt: Date.now(),
+                        autoStats: 0,
+                        showStats: 0
+                    });
 
+                    localStorage.setItem('aplus_saved_user', JSON.stringify({ uid, username: u }));
                     modal.remove();
                     startHack(uid, u, db, dbMod, auth, authMod);
                 }
@@ -192,24 +221,28 @@
     }
 
     // ==========================================
-    // 5. MAIN HACK LOGIC
+    // 5. MAIN HACK LOGIC & STATS
     // ==========================================
     function startHack(uid, username, db, dbMod, auth, authMod) {
         console.log(`[auth] Logged in as ${username}`);
+        
+        let sessionAutoCount = 0;
+        let sessionShowCount = 0;
 
-        // --- BACKGROUND BAN LISTENER ---
+        // Background Ban Listener
         setInterval(async () => {
             try {
                 const uSnap = await dbMod.getDoc(dbMod.doc(db, 'users', uid));
                 if (uSnap.exists() && uSnap.data().isBanned) {
                     alert("You have been BANNED by the admin.");
+                    localStorage.removeItem('aplus_saved_user');
                     await authMod.signOut(auth);
                     location.reload();
                 }
             } catch(e) {}
         }, 3000);
 
-        // --- BACKGROUND TROLL LISTENER ---
+        // Background Troll Listener
         dbMod.onSnapshot(dbMod.doc(db, 'commands', uid), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
@@ -228,20 +261,18 @@
             }
         });
 
-        // --- ADMIN PANEL ---
-        if (username === ADMIN_USERNAME) {
-            injectAdminPanel(db, dbMod);
-        }
+        injectAplusGUI(uid, username, db, dbMod, () => { sessionAutoCount++; }, () => { sessionShowCount++; });
 
-        // --- APLUS CHEAT GUI ---
-        injectAplusGUI();
+        if (username === ADMIN_USERNAME) {
+            injectAdminPanel(db, dbMod, auth, authMod);
+        }
     }
 
     // ==========================================
-    // 6. APLUS CHEAT GUI (Full Logic)
+    // 6. APLUS CHEAT GUI
     // ==========================================
-    function injectAplusGUI() {
-        if (document.getElementById('af-root')) return; // Already injected
+    function injectAplusGUI(uid, username, db, dbMod, onAuto, onShow) {
+        if (document.getElementById('af-root')) return;
 
         const root = document.createElement('div');
         root.id = 'af-root';
@@ -274,6 +305,8 @@
                     </div>
                 </div>
                 <button class="act" id="af-show">Show answer</button>
+                <button class="act" id="af-profile-btn">My Profile</button>
+                <button class="act" id="af-logout" style="background:#ff453a; color:#fff;">Log Out</button>
                 <div class="out" id="af-out"></div>
             </div>
         `;
@@ -287,6 +320,8 @@
         const speedVal = document.getElementById('af-speed-val');
         const closeBtn = document.getElementById('af-x');
         const showBtn = document.getElementById('af-show');
+        const profileBtn = document.getElementById('af-profile-btn');
+        const logoutBtn = document.getElementById('af-logout');
         const outEl = document.getElementById('af-out');
 
         let drag = false, ox = 0, oy = 0;
@@ -299,8 +334,7 @@
         bar.addEventListener('pointerdown', function (e) {
             if (e.target.id === 'af-x') return;
             e.preventDefault();
-            drag = true;
-            ox = e.clientX; oy = e.clientY;
+            drag = true; ox = e.clientX; oy = e.clientY;
             const r = root.getBoundingClientRect();
             root.style.right = 'auto'; root.style.bottom = 'auto';
             root.style.left = r.left + 'px'; root.style.top = r.top + 'px';
@@ -319,6 +353,15 @@
         });
         bar.addEventListener('pointerup', function () { drag = false; });
         bar.addEventListener('pointercancel', function () { drag = false; });
+
+        logoutBtn.onclick = async () => {
+            localStorage.removeItem('aplus_saved_user');
+            location.reload();
+        };
+
+        profileBtn.onclick = () => {
+            injectProfilePanel(uid, db, dbMod);
+        };
 
         function waitFor(fn, timeout, interval) {
             timeout = timeout || 1000; interval = interval || 50;
@@ -372,7 +415,6 @@
         }
 
         function rollCorrect() { return Math.random() * 100 < correctChance; }
-
         function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
         function renderValue(raw) {
@@ -392,7 +434,7 @@
             return parts.join('');
         }
 
-        function showAnswer() {
+        showBtn.addEventListener('click', async () => {
             const q = getQuestion();
             if (!q || !q.childQuestions || !q.childQuestions.length) {
                 outEl.innerHTML = '<div class="lbl">Result</div><div class="err">No question found.</div>';
@@ -411,7 +453,11 @@
             });
             outEl.innerHTML = html;
             outEl.classList.add('show');
-        }
+
+            // Stats
+            onShow();
+            dbMod.updateDoc(dbMod.doc(db, 'users', uid), { showStats: dbMod.increment(1) }).catch(()=>{});
+        });
 
         function fillInputs(q, forceWrong) {
             const card = document.querySelector('.practice_base_topic_card') || document;
@@ -586,6 +632,11 @@
                 fillInputs(q, forceWrong);
                 clickChoices(q, forceWrong);
                 await fillDropdowns(q, forceWrong);
+
+                // Stats
+                onAuto();
+                dbMod.updateDoc(dbMod.doc(db, 'users', uid), { autoStats: dbMod.increment(1) }).catch(()=>{});
+
                 await new Promise(r => setTimeout(r, advanceDelay));
                 if (!autoEnabled) return;
                 const next = findNextButton();
@@ -596,14 +647,63 @@
         toggle.addEventListener('click', function () { autoEnabled = !autoEnabled; toggle.classList.toggle('active', autoEnabled); });
         slider.addEventListener('input', function () { correctChance = parseInt(slider.value, 10); sliderVal.textContent = correctChance + '%'; });
         speedSlider.addEventListener('input', function () { advanceDelay = parseInt(speedSlider.value, 10); speedVal.textContent = advanceDelay + 'ms'; });
-        showBtn.addEventListener('click', showAnswer);
         closeBtn.addEventListener('click', function () { root.remove(); });
 
         setInterval(tick, 800);
     }
 
     // ==========================================
-    // 7. ADMIN PANEL (Ban + Troll)
+    // 7. PROFILE & SEARCH PANEL
+    // ==========================================
+    async function injectProfilePanel(uid, db, dbMod) {
+        const existing = document.getElementById('af-profile-panel');
+        if (existing) { existing.remove(); return; }
+
+        const panel = document.createElement('div');
+        panel.id = 'af-profile-panel';
+        panel.style = "position:fixed; top:20%; left:20%; background:#1c1c1e; border:1px solid #333; border-radius:12px; padding:20px; z-index:2147483649; width:300px; color:#fff; font-family:-apple-system,sans-serif; box-shadow:0 10px 30px rgba(0,0,0,0.5);";
+        panel.innerHTML = `
+            <button id="af-profile-close" style="position:absolute; top:10px; right:10px; background:none; border:none; color:#98989d; cursor:pointer; font-size:18px;">&times;</button>
+            <h2 style="margin-top:0; color:#0a84ff;">Profile Search</h2>
+            <input type="text" id="af-search" placeholder="Search username...">
+            <div id="af-profile-result"></div>
+        `;
+        document.body.appendChild(panel);
+        document.getElementById('af-profile-close').onclick = () => panel.remove();
+
+        const searchIn = document.getElementById('af-search');
+        const resDiv = document.getElementById('af-profile-result');
+
+        searchIn.addEventListener('input', async () => {
+            const q = searchIn.value.trim().toLowerCase();
+            if (!q) return resDiv.innerHTML = '';
+            
+            const uSnap = await dbMod.getDoc(dbMod.doc(db, 'usernames', q));
+            if (!uSnap.exists()) return resDiv.innerHTML = '<div style="color:#ff453a; margin-top:10px;">User not found.</div>';
+            
+            const uData = uSnap.data();
+            const userDoc = await dbMod.getDoc(dbMod.doc(db, 'users', uData.uid));
+            if (!userDoc.exists()) return;
+
+            const data = userDoc.data();
+            const isMe = uData.uid === uid;
+            const status = data.isBanned ? '<span style="color:#ff453a;">Banned</span>' : '<span style="color:#30d158;">Active</span>';
+
+            resDiv.innerHTML = `
+                <div class="af-profile-card">
+                    <h3>${data.username} ${isMe ? '(You)' : ''}</h3>
+                    <div style="font-size:12px; color:#98989d;">Status: ${status}</div>
+                    <div class="af-profile-stats">
+                        <div>Auto-Answered: <b>${data.autoStats || 0}</b></div>
+                        <div>Answers Viewed: <b>${data.showStats || 0}</b></div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // ==========================================
+    // 8. ADMIN PANEL
     // ==========================================
     function injectAdminPanel(db, dbMod) {
         const btn = document.createElement('button');
@@ -618,7 +718,7 @@
                 <button id="af-admin-close">&times;</button>
                 <h2>Admin Panel</h2>
                 <div style="margin-bottom: 15px;">
-                    <label style="font-size:12px; color:#aaa;">Troll Tool (Select effect, then click Troll on a user):</label>
+                    <label style="font-size:12px; color:#aaa;">Troll Tool:</label>
                     <select id="af-troll-select">
                         <option value="shake">Shake Screen</option>
                         <option value="alert">Random Alert</option>
@@ -647,6 +747,16 @@
                 const actions = document.createElement('div');
                 actions.className = 'actions';
 
+                // Profile button
+                const profileBtn = document.createElement('button');
+                profileBtn.textContent = "Profile";
+                profileBtn.className = 'profile';
+                profileBtn.onclick = async () => {
+                    // Quick display of stats inside the admin panel
+                    alert(`User: ${data.username}\nAuto-Answered: ${data.autoStats || 0}\nAnswers Viewed: ${data.showStats || 0}\nStatus: ${data.isBanned ? 'Banned' : 'Active'}`);
+                };
+
+                // Ban/Unban button
                 const banBtn = document.createElement('button');
                 banBtn.textContent = data.isBanned ? "Unban" : "Ban";
                 banBtn.className = data.isBanned ? 'unban' : 'ban';
@@ -658,6 +768,7 @@
                     banBtn.className = data.isBanned ? 'unban' : 'ban';
                 };
 
+                // Troll button
                 const trollBtn = document.createElement('button');
                 trollBtn.textContent = "Troll";
                 trollBtn.className = 'troll';
@@ -668,6 +779,7 @@
                     setTimeout(() => trollBtn.textContent = "Troll", 2000);
                 };
 
+                actions.appendChild(profileBtn);
                 actions.appendChild(banBtn);
                 actions.appendChild(trollBtn);
                 row.appendChild(name);
@@ -678,7 +790,7 @@
     }
 
     // ==========================================
-    // 8. START
+    // 9. START
     // ==========================================
     initAuth();
 
