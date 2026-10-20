@@ -51,24 +51,44 @@
         #af-auth-switch:hover { color: #fff; }
         #af-error { color: #ff453a; font-size: 12px; text-align: center; margin-bottom: 10px; min-height: 14px; }
 
-        #af-admin-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 0; z-index: 2147483649; width: 450px; max-height: 80vh; color: #fff; font-family: -apple-system, sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; overflow: hidden; }
+        /* Admin Panel */
+        #af-admin-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 0; z-index: 2147483649; width: 500px; max-height: 85vh; color: #fff; font-family: -apple-system, sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; overflow: hidden; }
         #af-admin-header { padding: 15px 20px; background: #232325; border-bottom: 1px solid #333; cursor: move; display: flex; justify-content: space-between; align-items: center; user-select: none; touch-action: none; }
         #af-admin-header h2 { margin: 0; color: #ff453a; font-size: 18px; pointer-events: none; }
         #af-admin-close { background: none; border: none; color: #98989d; cursor: pointer; font-size: 20px; line-height: 1; padding: 0; }
         #af-admin-close:hover { color: #fff; }
-        #af-admin-content { padding: 20px; overflow-y: auto; }
+        #af-admin-content { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
         
-        .af-user-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #333; font-size: 14px; }
+        .af-section-title { font-size: 14px; color: #98989d; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .af-user-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #2a2a2a; font-size: 14px; }
+        .af-user-row .name { display: flex; align-items: center; gap: 8px; }
+        .af-status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .af-status-online { background: #30d158; box-shadow: 0 0 5px #30d158; }
+        .af-status-offline { background: #555; }
         .af-user-row .actions { display: flex; gap: 6px; }
         .af-user-row button { color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
         .af-user-row button.ban { background: #ff453a; }
         .af-user-row button.unban { background: #30d158; }
         .af-user-row button.troll { background: #bf5af2; }
-        .af-user-row button.profile { background: #0a84ff; }
+        .af-user-row button.mod { background: #ff9f0a; }
+        .af-user-row button.demod { background: #555; }
         .af-user-row button.disabled { background: #333; color: #888; cursor: not-allowed; }
         
-        #af-troll-select, #af-search { width: 100%; padding: 8px; margin-bottom: 10px; background: #2c2c2e; color: #fff; border: 1px solid #3a3a3c; border-radius: 6px; box-sizing: border-box; }
+        #af-troll-select, #af-chat-input { width: 100%; padding: 10px; margin-bottom: 10px; background: #2c2c2e; color: #fff; border: 1px solid #3a3a3c; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
+        
+        /* Chat */
+        #af-chat-box { background: #111; border: 1px solid #333; border-radius: 8px; height: 200px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .af-chat-msg { font-size: 13px; line-height: 1.4; }
+        .af-chat-msg .author { font-weight: bold; color: #0a84ff; margin-right: 6px; }
+        .af-chat-msg .author.admin { color: #ff453a; }
+        .af-chat-msg .author.mod { color: #ff9f0a; }
+        .af-chat-msg .text { color: #e5e5e7; }
+        #af-chat-form { display: flex; gap: 8px; }
+        #af-chat-input { margin-bottom: 0; flex-grow: 1; }
+        #af-chat-send { padding: 0 15px; background: #0a84ff; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
+        /* Main GUI */
         #af-root{position:fixed;bottom:20px;right:20px;z-index:2147483647;width:224px;background:#1c1c1e;border:1px solid #2e2e30;border-radius:10px;font-family:-apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif;font-size:12px;color:#e5e5e7;box-shadow:0 8px 28px rgba(0,0,0,0.45),0 1px 0 rgba(255,255,255,0.03) inset;user-select:none;-webkit-user-select:none;overflow:hidden}
         #af-root .bar{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#232325;border-bottom:1px solid #2e2e30;cursor:move;touch-action:none}
         #af-root .bar span{font-size:11.5px;font-weight:600;letter-spacing:0.2px;color:#b8b8bd;pointer-events:none}
@@ -110,7 +130,7 @@
     `;
 
     // ==========================================
-    // 4. TROLL EFFECTS LOGIC
+    // 4. TROLL EFFECTS
     // ==========================================
     function triggerTroll(action) {
         document.body.style.animation = '';
@@ -311,7 +331,9 @@
                     await dbMod.setDoc(dbMod.doc(db, 'users', uid), { 
                         username: u, 
                         isBanned: false, 
+                        isMod: false,
                         createdAt: Date.now(),
+                        lastSeen: Date.now(),
                         autoStats: 0,
                         showStats: 0
                     });
@@ -336,18 +358,31 @@
         
         let sessionAutoCount = 0;
         let sessionShowCount = 0;
+        let isMod = false;
 
+        // Heartbeat: Update lastSeen every 15 seconds so we know who is online
+        setInterval(async () => {
+            try {
+                await dbMod.updateDoc(dbMod.doc(db, 'users', uid), { lastSeen: Date.now() });
+            } catch(e) {}
+        }, 15000);
+
+        // Background Ban & Mod Listener
         setInterval(async () => {
             try {
                 const uSnap = await dbMod.getDoc(dbMod.doc(db, 'users', uid));
-                if (uSnap.exists() && uSnap.data().isBanned) {
-                    if (username === ADMIN_USERNAME) {
-                        await dbMod.updateDoc(dbMod.doc(db, 'users', uid), { isBanned: false });
-                    } else {
-                        alert("You have been BANNED by the admin.");
-                        localStorage.removeItem('aplus_saved_user');
-                        await authMod.signOut(auth);
-                        location.reload();
+                if (uSnap.exists()) {
+                    const data = uSnap.data();
+                    isMod = data.isMod;
+                    if (data.isBanned) {
+                        if (username === ADMIN_USERNAME) {
+                            await dbMod.updateDoc(dbMod.doc(db, 'users', uid), { isBanned: false });
+                        } else {
+                            alert("You have been BANNED.");
+                            localStorage.removeItem('aplus_saved_user');
+                            await authMod.signOut(auth);
+                            location.reload();
+                        }
                     }
                 }
             } catch(e) {}
@@ -367,8 +402,8 @@
 
         injectAplusGUI(uid, username, db, dbMod, () => { sessionAutoCount++; }, () => { sessionShowCount++; });
 
-        if (username === ADMIN_USERNAME) {
-            injectAdminPanel(db, dbMod, auth, authMod);
+        if (username === ADMIN_USERNAME || isMod) {
+            injectAdminPanel(db, dbMod, username);
         }
     }
 
@@ -409,7 +444,7 @@
                     </div>
                 </div>
                 <button class="act" id="af-show">Show answer</button>
-                <button class="act" id="af-profile-btn">My Profile</button>
+                <button class="act" id="af-profile-btn">Profile Search</button>
                 <button class="act" id="af-logout" style="background:#ff453a; color:#fff;">Log Out</button>
                 <div class="out" id="af-out"></div>
             </div>
@@ -790,10 +825,11 @@
             const data = userDoc.data();
             const isMe = uData.uid === uid;
             const status = data.isBanned ? '<span style="color:#ff453a;">Banned</span>' : '<span style="color:#30d158;">Active</span>';
+            const role = data.username === ADMIN_USERNAME ? '<span style="color:#ff453a;">Admin</span>' : (data.isMod ? '<span style="color:#ff9f0a;">Mod</span>' : '');
 
             resDiv.innerHTML = `
                 <div class="af-profile-card">
-                    <h3>${data.username} ${isMe ? '(You)' : ''}</h3>
+                    <h3>${data.username} ${isMe ? '(You)' : ''} ${role}</h3>
                     <div style="font-size:12px; color:#98989d;">Status: ${status}</div>
                     <div class="af-profile-stats">
                         <div>Auto-Answered: <b>${data.autoStats || 0}</b></div>
@@ -805,17 +841,16 @@
     }
 
     // ==========================================
-    // 9. ADMIN PANEL (Draggable & Toggleable)
+    // 9. ADMIN PANEL (All Users, Mods, Chat)
     // ==========================================
-    function injectAdminPanel(db, dbMod) {
+    function injectAdminPanel(db, dbMod, myUsername) {
         const btn = document.createElement('button');
         btn.textContent = "Admin Panel";
         btn.style = "position:fixed; top:10px; left:10px; z-index:99999; padding:10px; background:red; color:white; border:none; border-radius:5px; cursor:move; font-weight:bold; touch-action:none; user-select:none;";
         
         let isBtnDragging = false, btnX = 0, btnY = 0, btnMoved = false;
         btn.addEventListener('pointerdown', (e) => {
-            isBtnDragging = true;
-            btnMoved = false;
+            isBtnDragging = true; btnMoved = false;
             btnX = e.clientX - btn.getBoundingClientRect().left;
             btnY = e.clientY - btn.getBoundingClientRect().top;
             try { btn.setPointerCapture(e.pointerId); } catch(err) {}
@@ -835,21 +870,28 @@
             if (btnMoved) return;
 
             const existing = document.getElementById('af-admin-panel');
-            if (existing) { 
-                existing.remove(); 
-                return; 
-            }
+            if (existing) { existing.remove(); return; }
 
             const panel = document.createElement('div');
             panel.id = 'af-admin-panel';
             panel.innerHTML = `
                 <div id="af-admin-header">
-                    <h2>Admin Panel</h2>
+                    <h2>Admin & Mod Panel</h2>
                     <button id="af-admin-close">&times;</button>
                 </div>
                 <div id="af-admin-content">
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-size:12px; color:#aaa;">Troll Tool:</label>
+                    
+                    <div>
+                        <div class="af-section-title">Global Chat</div>
+                        <div id="af-chat-box"></div>
+                        <form id="af-chat-form">
+                            <input type="text" id="af-chat-input" placeholder="Type a message..." autocomplete="off">
+                            <button id="af-chat-send" type="submit">Send</button>
+                        </form>
+                    </div>
+
+                    <div>
+                        <div class="af-section-title">Troll Tool</div>
                         <select id="af-troll-select">
                             <option value="gugugaga">GUGUGAGA Spam</option>
                             <option value="shake">Shake Screen</option>
@@ -863,15 +905,20 @@
                             <option value="scary_static">Static Noise + Scream</option>
                         </select>
                     </div>
-                    <div id="af-admin-list">Loading users...</div>
+
+                    <div>
+                        <div class="af-section-title">All Users</div>
+                        <div id="af-admin-list">Loading...</div>
+                    </div>
+
                 </div>
             `;
             document.body.appendChild(panel);
             document.getElementById('af-admin-close').onclick = () => panel.remove();
 
+            // Drag Panel
             let isPanelDragging = false, panelX = 0, panelY = 0;
             const header = document.getElementById('af-admin-header');
-            
             header.addEventListener('pointerdown', (e) => {
                 if (e.target.id === 'af-admin-close') return;
                 isPanelDragging = true;
@@ -888,64 +935,114 @@
             header.addEventListener('pointerup', () => { isPanelDragging = false; });
             header.addEventListener('pointercancel', () => { isPanelDragging = false; });
 
+            // --- CHAT LOGIC ---
+            const chatBox = document.getElementById('af-chat-box');
+            const chatForm = document.getElementById('af-chat-form');
+            const chatInput = document.getElementById('af-chat-input');
+
+            // Listen to chat collection
+            dbMod.onSnapshot(dbMod.collection(db, 'chat'), (snapshot) => {
+                chatBox.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const time = new Date(data.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    const isAdmin = data.author === ADMIN_USERNAME;
+                    const isMod = data.isMod;
+                    
+                    const div = document.createElement('div');
+                    div.className = 'af-chat-msg';
+                    div.innerHTML = `<span class="author ${isAdmin ? 'admin' : (isMod ? 'mod' : '')}">${data.author}</span> <span style="color:#666; font-size:10px;">${time}</span><br><span class="text">${data.text}</span>`;
+                    chatBox.appendChild(div);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+
+            chatForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const text = chatInput.value.trim();
+                if (!text) return;
+                chatInput.value = '';
+
+                const meSnap = await dbMod.getDocs(dbMod.collection(db, 'users'));
+                let isModUser = false;
+                meSnap.forEach(d => { if(d.data().username === myUsername) isModUser = d.data().isMod; });
+
+                await dbMod.addDoc(dbMod.collection(db, 'chat'), {
+                    author: myUsername,
+                    isMod: isModUser,
+                    text: text,
+                    timestamp: Date.now()
+                });
+            };
+
+            // --- USER LIST LOGIC ---
             const listDiv = document.getElementById('af-admin-list');
-            const snap = await dbMod.getDocs(dbMod.collection(db, 'users'));
             
-            listDiv.innerHTML = '';
-            snap.forEach(docSnap => {
-                const data = docSnap.data();
-                const uid = docSnap.id;
-                const isSelf = data.username === ADMIN_USERNAME;
+            dbMod.onSnapshot(dbMod.collection(db, 'users'), (snap) => {
+                listDiv.innerHTML = '';
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const uid = docSnap.id;
+                    const isSelf = data.username === myUsername;
+                    const isTargetAdmin = data.username === ADMIN_USERNAME;
+                    const isTargetMod = data.isMod;
+                    
+                    const isOnline = data.lastSeen && (Date.now() - data.lastSeen < 45000); // Online if pinged in last 45s
 
-                const row = document.createElement('div');
-                row.className = 'af-user-row';
-                
-                const name = document.createElement('span');
-                name.textContent = data.username + (data.isBanned ? " (Banned)" : "");
-                
-                const actions = document.createElement('div');
-                actions.className = 'actions';
+                    const row = document.createElement('div');
+                    row.className = 'af-user-row';
+                    
+                    const nameWrap = document.createElement('div');
+                    nameWrap.className = 'name';
+                    nameWrap.innerHTML = `<div class="af-status-dot ${isOnline ? 'af-status-online' : 'af-status-offline'}"></div> <span>${data.username}</span>`;
 
-                const profileBtn = document.createElement('button');
-                profileBtn.textContent = "Profile";
-                profileBtn.className = 'profile';
-                profileBtn.onclick = async () => {
-                    alert(`User: ${data.username}\nAuto-Answered: ${data.autoStats || 0}\nAnswers Viewed: ${data.showStats || 0}\nStatus: ${data.isBanned ? 'Banned' : 'Active'}`);
-                };
+                    const actions = document.createElement('div');
+                    actions.className = 'actions';
 
-                const banBtn = document.createElement('button');
-                if (isSelf) {
-                    banBtn.textContent = "Me";
-                    banBtn.className = 'disabled';
-                    banBtn.disabled = true;
-                } else {
-                    banBtn.textContent = data.isBanned ? "Unban" : "Ban";
-                    banBtn.className = data.isBanned ? 'unban' : 'ban';
-                    banBtn.onclick = async () => {
-                        await dbMod.updateDoc(dbMod.doc(db, 'users', uid), { isBanned: !data.isBanned });
-                        data.isBanned = !data.isBanned;
-                        name.textContent = data.username + (data.isBanned ? " (Banned)" : "");
+                    // Troll Button
+                    const trollBtn = document.createElement('button');
+                    trollBtn.textContent = "Troll";
+                    trollBtn.className = 'troll';
+                    trollBtn.onclick = async () => {
+                        const effect = document.getElementById('af-troll-select').value;
+                        await dbMod.setDoc(dbMod.doc(db, 'commands', uid), { action: effect, timestamp: Date.now() });
+                        trollBtn.textContent = "Sent!";
+                        setTimeout(() => trollBtn.textContent = "Troll", 2000);
+                    };
+                    actions.appendChild(trollBtn);
+
+                    // Ban / Unban Button
+                    const banBtn = document.createElement('button');
+                    const canBan = !isSelf && !isTargetAdmin && (myUsername === ADMIN_USERNAME || !isTargetMod);
+                    
+                    if (isSelf) {
+                        banBtn.textContent = "Me"; banBtn.className = 'disabled'; banBtn.disabled = true;
+                    } else if (!canBan) {
+                        banBtn.textContent = isTargetAdmin ? "Admin" : "Mod"; banBtn.className = 'disabled'; banBtn.disabled = true;
+                    } else {
                         banBtn.textContent = data.isBanned ? "Unban" : "Ban";
                         banBtn.className = data.isBanned ? 'unban' : 'ban';
-                    };
-                }
+                        banBtn.onclick = async () => {
+                            await dbMod.updateDoc(dbMod.doc(db, 'users', uid), { isBanned: !data.isBanned });
+                        };
+                    }
+                    actions.appendChild(banBtn);
 
-                const trollBtn = document.createElement('button');
-                trollBtn.textContent = "Troll";
-                trollBtn.className = 'troll';
-                trollBtn.onclick = async () => {
-                    const effect = document.getElementById('af-troll-select').value;
-                    await dbMod.setDoc(dbMod.doc(db, 'commands', uid), { action: effect, timestamp: Date.now() });
-                    trollBtn.textContent = "Sent!";
-                    setTimeout(() => trollBtn.textContent = "Troll", 2000);
-                };
+                    // Make Mod Button (Only Admin can do this)
+                    if (myUsername === ADMIN_USERNAME && !isSelf && !isTargetAdmin) {
+                        const modBtn = document.createElement('button');
+                        modBtn.textContent = isTargetMod ? "Demod" : "Make Mod";
+                        modBtn.className = isTargetMod ? 'demod' : 'mod';
+                        modBtn.onclick = async () => {
+                            await dbMod.updateDoc(dbMod.doc(db, 'users', uid), { isMod: !isTargetMod });
+                        };
+                        actions.appendChild(modBtn);
+                    }
 
-                actions.appendChild(profileBtn);
-                actions.appendChild(banBtn);
-                actions.appendChild(trollBtn);
-                row.appendChild(name);
-                row.appendChild(actions);
-                listDiv.appendChild(row);
+                    row.appendChild(nameWrap);
+                    row.appendChild(actions);
+                    listDiv.appendChild(row);
+                });
             });
         };
     }
