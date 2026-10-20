@@ -1,4 +1,44 @@
-!function(){"use strict";let e={apiKey:"AIzaSyDd15smQKX5BWWlQ3PjzZ6cEi18P7zKeWg",authDomain:"aplus-5383f.firebaseapp.com",projectId:"aplus-5383f",storageBucket:"aplus-5383f.firebasestorage.app",messagingSenderId:"654012013474",appId:"1:654012013474:web:3f2e023a2597af46c8b0fb"};async function t(){let t=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"),n=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"),o=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"),a=t.initializeApp(e);return{auth:n.getAuth(a),db:o.getFirestore(a),authMod:n,dbMod:o}}let n=`
+(function () {
+    'use strict';
+
+    // ==========================================
+    // 1. CONFIGURATION
+    // ==========================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyDd15smQKX5BWWlQ3PjzZ6cEi18P7zKeWg",
+        authDomain: "aplus-5383f.firebaseapp.com",
+        projectId: "aplus-5383f",
+        storageBucket: "aplus-5383f.firebasestorage.app",
+        messagingSenderId: "654012013474",
+        appId: "1:654012013474:web:3f2e023a2597af46c8b0fb"
+    };
+
+    const ADMIN_USERNAME = "cat_here"; 
+
+    // ==========================================
+    // 2. FIREBASE SETUP
+    // ==========================================
+    async function loadFirebase() {
+        const appMod = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
+        const authMod = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
+        const dbMod = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+        const app = appMod.initializeApp(firebaseConfig);
+        return { auth: authMod.getAuth(app), db: dbMod.getFirestore(app), authMod, dbMod };
+    }
+
+    function getDeviceId() {
+        let id = localStorage.getItem('aplus_device_id');
+        if (!id) {
+            id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+            localStorage.setItem('aplus_device_id', id);
+        }
+        return id;
+    }
+
+    // ==========================================
+    // 3. STYLES
+    // ==========================================
+    const css = `
         #af-auth-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2147483648; display: flex; align-items: center; justify-content: center; font-family: -apple-system, sans-serif; }
         #af-auth-box { background: #1c1c1e; padding: 24px; border-radius: 12px; width: 300px; color: #fff; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         #af-auth-box h2 { margin: 0 0 16px 0; font-size: 18px; text-align: center; color: #e5e5e7; }
@@ -25,6 +65,7 @@
         .af-user-row button.unban { background: #30d158; }
         .af-user-row button.troll { background: #bf5af2; }
         .af-user-row button.profile { background: #0a84ff; }
+        .af-user-row button.disabled { background: #333; color: #888; cursor: not-allowed; }
         
         #af-troll-select, #af-search { width: 100%; padding: 8px; margin-bottom: 10px; background: #2c2c2e; color: #fff; border: 1px solid #3a3a3c; border-radius: 6px; box-sizing: border-box; }
 
@@ -66,7 +107,140 @@
         .af-profile-card { background: #1c1c1e; border: 1px solid #333; padding: 15px; border-radius: 8px; margin-top: 10px; text-align: center; }
         .af-profile-card h3 { margin: 0 0 5px 0; color: #0a84ff; }
         .af-profile-stats { font-size: 13px; color: #ccc; margin-top: 10px; }
-    `;async function o(){let e=document.createElement("style");e.textContent=n,document.head.appendChild(e);let o=await t(),{auth:i,db:r,authMod:l,dbMod:s}=o,d=localStorage.getItem("aplus_saved_user");if(d)try{let c=JSON.parse(d),p=await s.getDoc(s.doc(r,"users",c.uid));if(p.exists()&&p.data().isBanned)throw localStorage.removeItem("aplus_saved_user"),Error("Account Banned.");await l.signInAnonymously(i),a(c.uid,c.username,r,s,i,l);return}catch(f){console.log("Auto-login failed",f)}let u=document.createElement("div");u.id="af-auth-modal",u.innerHTML=`
+    `;
+
+    // ==========================================
+    // 4. TROLL EFFECTS LOGIC
+    // ==========================================
+    function triggerTroll(action) {
+        document.body.style.animation = '';
+        document.body.style.transform = '';
+        document.body.style.filter = '';
+        const old = document.getElementById('af-troll-overlay');
+        if (old) old.remove();
+        if (window.__trollInt) clearInterval(window.__trollInt);
+
+        if (action === 'shake' || action === 'gugugaga') {
+            const shakeStyle = document.createElement('style');
+            shakeStyle.textContent = `@keyframes af-shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }`;
+            document.head.appendChild(shakeStyle);
+            document.body.style.animation = 'af-shake 0.5s infinite';
+            setTimeout(() => document.body.style.animation = '', 5000);
+        }
+
+        if (action === 'gugugaga') {
+            const overlay = document.createElement('div');
+            overlay.id = 'af-troll-overlay';
+            overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; overflow:hidden; background:rgba(0,0,0,0.5);";
+            document.body.appendChild(overlay);
+            
+            window.__trollInt = setInterval(() => {
+                const txt = document.createElement('div');
+                txt.textContent = "GUGUGAGA";
+                txt.style = `position:absolute; color:red; font-weight:bold; font-family:Comic Sans MS, sans-serif; font-size:${Math.random()*40+20}px; left:${Math.random()*100}vw; top:${Math.random()*100}vh; transform:rotate(${Math.random()*360}deg); opacity:${Math.random()*0.5+0.5};`;
+                overlay.appendChild(txt);
+                setTimeout(() => txt.remove(), 1500);
+            }, 30);
+            setTimeout(() => { clearInterval(window.__trollInt); overlay.remove(); }, 5000);
+        }
+
+        if (action === 'flip') {
+            document.body.style.transform = 'rotate(180deg)';
+            setTimeout(() => document.body.style.transform = '', 5000);
+        }
+
+        if (action === 'alert') {
+            alert("You have been trolled!");
+        }
+
+        if (action === 'scary_face') {
+            const overlay = document.createElement('div');
+            overlay.id = 'af-troll-overlay';
+            overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; display:flex; justify-content:center; align-items:center; background:black;";
+            overlay.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Openclipart_Scary_Face.svg/1200px-Openclipart_Scary_Face.svg.png" style="width:80vh; filter:invert(1) sepia(1) saturate(10) hue-rotate(-50deg);">';
+            document.body.appendChild(overlay);
+            const scream = new Audio('https://www.myinstants.com/media/sounds/screaming-sheep.mp3');
+            scream.play().catch(()=>{});
+            setTimeout(() => overlay.remove(), 3000);
+        }
+
+        if (action === 'scary_blood') {
+            const overlay = document.createElement('div');
+            overlay.id = 'af-troll-overlay';
+            overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; background:rgba(255,0,0,0.8); display:flex; justify-content:center; align-items:center; color:white; font-size:10vw; font-family:serif; font-weight:bold; text-shadow: 0 0 20px black;";
+            overlay.textContent = "DON'T LOOK BEHIND YOU";
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.remove(), 3000);
+        }
+
+        if (action === 'scary_invert') {
+            document.body.style.filter = 'invert(1) hue-rotate(180deg) contrast(2)';
+            setTimeout(() => document.body.style.filter = '', 3000);
+        }
+
+        if (action === 'scary_static') {
+            document.body.style.filter = 'contrast(200%) grayscale(100%) brightness(50%)';
+            const overlay = document.createElement('div');
+            overlay.id = 'af-troll-overlay';
+            overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; background:url('https://media.giphy.com/media/oEI9uWUEXye36/giphy.gif') center/cover; opacity:0.8;";
+            document.body.appendChild(overlay);
+            const scream = new Audio('https://www.myinstants.com/media/sounds/static-noise.mp3');
+            scream.play().catch(()=>{});
+            setTimeout(() => { overlay.remove(); document.body.style.filter = ''; }, 3000);
+        }
+
+        if (action === 'troll_cursor') {
+            const css = document.createElement('style');
+            css.id = 'af-troll-cursor';
+            css.textContent = `* { cursor: url('https://cur.cursors-4u.net/cursors/cur-9/cur817.cur'), auto !important; }`;
+            document.head.appendChild(css);
+            setTimeout(() => css.remove(), 5000);
+        }
+
+        if (action === 'troll_zoom') {
+            document.body.style.transition = 'transform 0.1s';
+            let scale = 1;
+            window.__trollInt = setInterval(() => {
+                scale += 0.1;
+                document.body.style.transform = `scale(${scale})`;
+                if (scale > 3) { clearInterval(window.__trollInt); document.body.style.transform = ''; document.body.style.transition = ''; }
+            }, 100);
+        }
+    }
+
+    // ==========================================
+    // 5. AUTH & LOCAL STORAGE
+    // ==========================================
+    async function initAuth() {
+        const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+        const fb = await loadFirebase();
+        const { auth, db, authMod, dbMod } = fb;
+
+        const savedUser = localStorage.getItem('aplus_saved_user');
+        if (savedUser) {
+            try {
+                const parsed = JSON.parse(savedUser);
+                const uSnap = await dbMod.getDoc(dbMod.doc(db, 'users', parsed.uid));
+                if (uSnap.exists() && uSnap.data().isBanned) {
+                    // If it's the admin, auto-unban them
+                    if (parsed.username === ADMIN_USERNAME) {
+                        await dbMod.updateDoc(dbMod.doc(db, 'users', parsed.uid), { isBanned: false });
+                    } else {
+                        localStorage.removeItem('aplus_saved_user');
+                        throw new Error("Account Banned.");
+                    }
+                }
+                await authMod.signInAnonymously(auth);
+                startHack(parsed.uid, parsed.username, db, dbMod, auth, authMod);
+                return;
+            } catch (e) {
+                console.log("Auto-login failed", e);
+            }
+        }
+
+        const modal = document.createElement('div');
+        modal.id = 'af-auth-modal';
+        modal.innerHTML = `
             <div id="af-auth-box">
                 <h2 id="af-auth-title">Login</h2>
                 <div id="af-error"></div>
@@ -75,7 +249,141 @@
                 <button id="af-auth-btn">Login</button>
                 <button id="af-auth-switch">Need an account? Register</button>
             </div>
-        `,document.body.appendChild(u);let g=!0;document.getElementById("af-auth-switch").onclick=()=>{g=!g,document.getElementById("af-auth-title").textContent=g?"Login":"Create Account",document.getElementById("af-auth-btn").textContent=g?"Login":"Register",document.getElementById("af-auth-switch").textContent=g?"Need an account? Register":"Already have an account? Login",document.getElementById("af-error").textContent=""},document.getElementById("af-auth-btn").onclick=async()=>{let e=document.getElementById("af-username").value.trim().toLowerCase(),t=document.getElementById("af-password").value,n=document.getElementById("af-error"),o=document.getElementById("af-auth-btn");if(!e||!t)return n.textContent="Fill all fields.";if(t.length>20)return n.textContent="Password max 20 chars.";o.disabled=!0,n.textContent="Processing...";try{let d=s.doc(r,"usernames",e);if(g){let c=await s.getDoc(d);if(!c.exists())throw Error("Account not found.");let p=c.data();if(p.password!==t)throw Error("Wrong password.");await l.signInAnonymously(i);let f=s.doc(r,"users",p.uid),m=await s.getDoc(f);if(m.exists()&&m.data().isBanned)throw await l.signOut(i),Error("This account is BANNED.");localStorage.setItem("aplus_saved_user",JSON.stringify({uid:p.uid,username:e})),u.remove(),a(p.uid,e,r,s,i,l)}else{let $,b=(($=localStorage.getItem("aplus_device_id"))||($=crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2),localStorage.setItem("aplus_device_id",$)),$),x=s.doc(r,"devices",b),h=await s.getDoc(x);if(h.exists())throw Error("This device is already registered.");let y=await s.getDoc(d);if(y.exists())throw Error("Username taken.");let _=await l.signInAnonymously(i),v=_.user.uid;await s.setDoc(d,{uid:v,password:t}),await s.setDoc(x,{uid:v}),await s.setDoc(s.doc(r,"users",v),{username:e,isBanned:!1,createdAt:Date.now(),autoStats:0,showStats:0}),localStorage.setItem("aplus_saved_user",JSON.stringify({uid:v,username:e})),u.remove(),a(v,e,r,s,i,l)}}catch(w){n.textContent=w.message}finally{o.disabled=!1}}}function a(e,t,n,o,a,r){console.log(`[auth] Logged in as ${t}`);let l=0,s=0;setInterval(async()=>{try{let t=await o.getDoc(o.doc(n,"users",e));t.exists()&&t.data().isBanned&&(alert("You have been BANNED by the admin."),localStorage.removeItem("aplus_saved_user"),await r.signOut(a),location.reload())}catch(i){}},3e3),o.onSnapshot(o.doc(n,"commands",e),e=>{if(e.exists()){let t=e.data(),n=localStorage.getItem("af_last_troll");n!=t.timestamp&&(localStorage.setItem("af_last_troll",t.timestamp),function e(t){document.body.style.animation="",document.body.style.transform="",document.body.style.filter="";let n=document.getElementById("af-troll-overlay");if(n&&n.remove(),window.__trollInt&&clearInterval(window.__trollInt),"shake"===t||"gugugaga"===t){let o=document.createElement("style");o.textContent="@keyframes af-shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }",document.head.appendChild(o),document.body.style.animation="af-shake 0.5s infinite",setTimeout(()=>document.body.style.animation="",5e3)}if("gugugaga"===t){let a=document.createElement("div");a.id="af-troll-overlay",a.style="position:fixed; inset:0; z-index:2147483645; pointer-events:none; overflow:hidden; background:rgba(0,0,0,0.5);",document.body.appendChild(a),window.__trollInt=setInterval(()=>{let e=document.createElement("div");e.textContent="GUGUGAGA",e.style=`position:absolute; color:red; font-weight:bold; font-family:Comic Sans MS, sans-serif; font-size:${40*Math.random()+20}px; left:${100*Math.random()}vw; top:${100*Math.random()}vh; transform:rotate(${360*Math.random()}deg); opacity:${.5*Math.random()+.5};`,a.appendChild(e),setTimeout(()=>e.remove(),1500)},30),setTimeout(()=>{clearInterval(window.__trollInt),a.remove()},5e3)}if("flip"===t&&(document.body.style.transform="rotate(180deg)",setTimeout(()=>document.body.style.transform="",5e3)),"alert"===t&&alert("You have been trolled!"),"scary_face"===t){let i=document.createElement("div");i.id="af-troll-overlay",i.style="position:fixed; inset:0; z-index:2147483645; pointer-events:none; display:flex; justify-content:center; align-items:center; background:black;",i.innerHTML='<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Openclipart_Scary_Face.svg/1200px-Openclipart_Scary_Face.svg.png" style="width:80vh; filter:invert(1) sepia(1) saturate(10) hue-rotate(-50deg);">',document.body.appendChild(i);let r=new Audio("https://www.myinstants.com/media/sounds/screaming-sheep.mp3");r.play().catch(()=>{}),setTimeout(()=>i.remove(),3e3)}if("scary_blood"===t){let l=document.createElement("div");l.id="af-troll-overlay",l.style="position:fixed; inset:0; z-index:2147483645; pointer-events:none; background:rgba(255,0,0,0.8); display:flex; justify-content:center; align-items:center; color:white; font-size:10vw; font-family:serif; font-weight:bold; text-shadow: 0 0 20px black;",l.textContent="DON'T LOOK BEHIND YOU",document.body.appendChild(l),setTimeout(()=>l.remove(),3e3)}if("scary_invert"===t&&(document.body.style.filter="invert(1) hue-rotate(180deg) contrast(2)",setTimeout(()=>document.body.style.filter="",3e3)),"scary_static"===t){document.body.style.filter="contrast(200%) grayscale(100%) brightness(50%)";let s=document.createElement("div");s.id="af-troll-overlay",s.style="position:fixed; inset:0; z-index:2147483645; pointer-events:none; background:url('https://media.giphy.com/media/oEI9uWUEXye36/giphy.gif') center/cover; opacity:0.8;",document.body.appendChild(s);let d=new Audio("https://www.myinstants.com/media/sounds/static-noise.mp3");d.play().catch(()=>{}),setTimeout(()=>{s.remove(),document.body.style.filter=""},3e3)}if("troll_cursor"===t){let c=document.createElement("style");c.id="af-troll-cursor",c.textContent="* { cursor: url('https://cur.cursors-4u.net/cursors/cur-9/cur817.cur'), auto !important; }",document.head.appendChild(c),setTimeout(()=>c.remove(),5e3)}if("troll_zoom"===t){document.body.style.transition="transform 0.1s";let p=1;window.__trollInt=setInterval(()=>{p+=.1,document.body.style.transform=`scale(${p})`,p>3&&(clearInterval(window.__trollInt),document.body.style.transform="",document.body.style.transition="")},100)}}(t.action))}}),function e(t,n,o,a,r,l){if(document.getElementById("af-root"))return;let s=document.createElement("div");s.id="af-root",s.innerHTML=`
+        `;
+        document.body.appendChild(modal);
+
+        let isLogin = true;
+        document.getElementById('af-auth-switch').onclick = () => {
+            isLogin = !isLogin;
+            document.getElementById('af-auth-title').textContent = isLogin ? 'Login' : 'Create Account';
+            document.getElementById('af-auth-btn').textContent = isLogin ? 'Login' : 'Register';
+            document.getElementById('af-auth-switch').textContent = isLogin ? 'Need an account? Register' : 'Already have an account? Login';
+            document.getElementById('af-error').textContent = '';
+        };
+
+        document.getElementById('af-auth-btn').onclick = async () => {
+            const u = document.getElementById('af-username').value.trim().toLowerCase();
+            const p = document.getElementById('af-password').value;
+            const errDiv = document.getElementById('af-error');
+            const btn = document.getElementById('af-auth-btn');
+
+            if (!u || !p) return errDiv.textContent = "Fill all fields.";
+            if (p.length > 20) return errDiv.textContent = "Password max 20 chars.";
+
+            btn.disabled = true; errDiv.textContent = "Processing...";
+
+            try {
+                const usernameRef = dbMod.doc(db, 'usernames', u);
+
+                if (isLogin) {
+                    const snap = await dbMod.getDoc(usernameRef);
+                    if (!snap.exists()) throw new Error("Account not found.");
+                    const data = snap.data();
+                    if (data.password !== p) throw new Error("Wrong password.");
+
+                    await authMod.signInAnonymously(auth);
+
+                    const userRef = dbMod.doc(db, 'users', data.uid);
+                    const uSnap = await dbMod.getDoc(userRef);
+                    if (uSnap.exists() && uSnap.data().isBanned) {
+                        if (u === ADMIN_USERNAME) {
+                            await dbMod.updateDoc(userRef, { isBanned: false });
+                        } else {
+                            await authMod.signOut(auth);
+                            throw new Error("This account is BANNED.");
+                        }
+                    }
+
+                    localStorage.setItem('aplus_saved_user', JSON.stringify({ uid: data.uid, username: u }));
+                    modal.remove();
+                    startHack(data.uid, u, db, dbMod, auth, authMod);
+
+                } else {
+                    const devId = getDeviceId();
+                    const devRef = dbMod.doc(db, 'devices', devId);
+                    const dSnap = await dbMod.getDoc(devRef);
+                    if (dSnap.exists()) throw new Error("This device is already registered.");
+                    const uSnap = await dbMod.getDoc(usernameRef);
+                    if (uSnap.exists()) throw new Error("Username taken.");
+
+                    const cred = await authMod.signInAnonymously(auth);
+                    const uid = cred.user.uid;
+
+                    await dbMod.setDoc(usernameRef, { uid, password: p });
+                    await dbMod.setDoc(devRef, { uid });
+                    await dbMod.setDoc(dbMod.doc(db, 'users', uid), { 
+                        username: u, 
+                        isBanned: false, 
+                        createdAt: Date.now(),
+                        autoStats: 0,
+                        showStats: 0
+                    });
+
+                    localStorage.setItem('aplus_saved_user', JSON.stringify({ uid, username: u }));
+                    modal.remove();
+                    startHack(uid, u, db, dbMod, auth, authMod);
+                }
+            } catch (e) {
+                errDiv.textContent = e.message;
+            } finally {
+                btn.disabled = false;
+            }
+        };
+    }
+
+    // ==========================================
+    // 6. MAIN HACK LOGIC & TROLL LISTENER
+    // ==========================================
+    function startHack(uid, username, db, dbMod, auth, authMod) {
+        console.log(`[auth] Logged in as ${username}`);
+        
+        let sessionAutoCount = 0;
+        let sessionShowCount = 0;
+
+        setInterval(async () => {
+            try {
+                const uSnap = await dbMod.getDoc(dbMod.doc(db, 'users', uid));
+                if (uSnap.exists() && uSnap.data().isBanned) {
+                    if (username === ADMIN_USERNAME) {
+                        await dbMod.updateDoc(dbMod.doc(db, 'users', uid), { isBanned: false });
+                    } else {
+                        alert("You have been BANNED by the admin.");
+                        localStorage.removeItem('aplus_saved_user');
+                        await authMod.signOut(auth);
+                        location.reload();
+                    }
+                }
+            } catch(e) {}
+        }, 3000);
+
+        dbMod.onSnapshot(dbMod.doc(db, 'commands', uid), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                
+                const lastSeen = localStorage.getItem('af_last_troll');
+                if (lastSeen == data.timestamp) return; 
+                localStorage.setItem('af_last_troll', data.timestamp);
+
+                triggerTroll(data.action);
+            }
+        });
+
+        injectAplusGUI(uid, username, db, dbMod, () => { sessionAutoCount++; }, () => { sessionShowCount++; });
+
+        if (username === ADMIN_USERNAME) {
+            injectAdminPanel(db, dbMod, auth, authMod);
+        }
+    }
+
+    // ==========================================
+    // 7. APLUS CHEAT GUI
+    // ==========================================
+    function injectAplusGUI(uid, username, db, dbMod, onAuto, onShow) {
+        if (document.getElementById('af-root')) return;
+
+        const root = document.createElement('div');
+        root.id = 'af-root';
+        root.innerHTML = `
             <div class="bar" id="af-bar">
                 <span>Autofill</span>
                 <b id="af-x">&times;</b>
@@ -108,7 +416,436 @@
                 <button class="act" id="af-logout" style="background:#ff453a; color:#fff;">Log Out</button>
                 <div class="out" id="af-out"></div>
             </div>
-        `,document.body.appendChild(s);let d=document.getElementById("af-bar"),c=document.getElementById("af-toggle"),p=document.getElementById("af-slider"),f=document.getElementById("af-val"),u=document.getElementById("af-speed"),g=document.getElementById("af-speed-val"),m=document.getElementById("af-x"),$=document.getElementById("af-show"),b=document.getElementById("af-profile-btn"),x=document.getElementById("af-logout"),h=document.getElementById("af-out"),y=!1,_=0,v=0,w=!1,k=85,E=900,C=null,B=!1;function I(e,t,n){return t=t||1e3,n=n||50,new Promise(function(o){let a=Date.now();!function i(){let r;try{r=e()}catch(l){r=null}return r?o(r):Date.now()-a>=t?o(null):void setTimeout(i,n)}()})}function A(){try{let e=document.getElementById("app");if(!e||!e.__vue__)return null;return function e(t,n){if(!t||"object"!=typeof t||n>15||t.__ob__)return null;if(t.currentQuestion&&t.currentQuestion.childQuestions||t.currentQuestion&&t.currentQuestion.questionId)return t.currentQuestion;if(t.childQuestions&&Array.isArray(t.childQuestions))return t;if(t.$data)for(let o in t.$data){let a=t.$data[o];if(a&&"object"==typeof a){let i=e(a,n+1);if(i)return i}}if(t.$children)for(let r of t.$children){let l=e(r,n+1);if(l)return l}return null}(e.__vue__,0)}catch(t){return null}}function S(e){return String(e).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function L(e){if(/^-?\d+(\.\d+)?$/.test(e)){let t=parseFloat(e);return String(t+(.5>Math.random()?-1:1)*(1+Math.floor(5*Math.random())))}return e}async function z(e,t){let n=document.querySelector(".practice_base_topic_card")||document,o=n.querySelectorAll(".select_component");if(!o.length)return 0;let a=(e.childQuestions||[]).filter(e=>e.questionAnswer),i=0;for(let r=0;r<o.length;r++){let l=o[r],s=a[r];if(!s)continue;let d=String(Array.isArray(s.questionAnswer)?s.questionAnswer[0]:s.questionAnswer).trim().toUpperCase();if(t&&s.options&&s.options.length>1){let c=s.options.map(e=>e.optionNo).filter(e=>e!==d);c.length&&(d=c[Math.floor(Math.random()*c.length)])}let p=null;if(s.options&&Array.isArray(s.options)){let f=s.options.find(e=>e.optionNo===d);f&&(p=String(f.optionContent).trim())}if(!p)continue;let u=l.querySelectorAll(".options_box li");if(0===u.length){let g=l.__vue__;if(g&&g.$data&&"flag"in g.$data)g.$data.flag=!0,g.$forceUpdate&&g.$forceUpdate();else{let m=l.querySelector(".select_box");m&&m.click()}u=await I(function(){let e=l.querySelectorAll(".options_box li");return e.length?e:null},1500,60)}if(!u||!u.length)continue;let $=null;for(let b of u)if(b.textContent.trim()===p){$=b;break}if(!$){let x=p.replace(/\s+/g,"");for(let h of u)if(h.textContent.replace(/\s+/g,"")===x){$=h;break}}$&&($.click(),i++,await new Promise(e=>setTimeout(e,100)))}return i}async function q(){if(w&&!B){B=!0;try{var e;let n=A();if(!n)return;let i=(e=n)?e.questionId?e.questionId:e.childQuestions?JSON.stringify(e.childQuestions.map(e=>e.questionAnswer)):null:null;if(!i||i===C)return;C=i,document.querySelectorAll('[data-autofilled="1"]').forEach(e=>{e.removeAttribute("data-autofilled"),e.style.outline=""});let l=!(100*Math.random()<k);if(function e(t,n){let o=document.querySelector(".practice_base_topic_card")||document,a=o.querySelectorAll("textarea.ant-input");if(!a.length)return 0;let i=(t.childQuestions||[]).filter(e=>e.questionAnswer),r=0;for(let l=0;l<a.length;l++){let s=a[l],d=i[l];if(!d)break;let c=d.questionAnswer;Array.isArray(c)&&(c=c[0]),"string"!=typeof c&&(c=String(c)),n&&(c=L(c)),s.value!==c&&(s.focus(),s.value=c,s.dispatchEvent(new Event("input",{bubbles:!0})),s.dispatchEvent(new Event("change",{bubbles:!0})),s.blur(),s.style.outline="2px solid "+(n?"#ff453a":"#30d158"),r++)}return r}(n,l),function e(t,n){let o=document.querySelector(".practice_base_topic_card")||document,a=o.querySelectorAll("ul.TEXT, ul.MATH, ul.CHINESE, ul.ENGLISH");if(!a.length)return 0;let i=(t.childQuestions||[]).filter(e=>e.questionAnswer).map(e=>{let t=e.questionAnswer;return Array.isArray(t)&&(t=t.join(";")),{raw:String(t),child:e}}),r=0;for(let l=0;l<a.length;l++){let s=a[l];if(s.classList.contains("options_box")||s.closest(".select_component"))continue;let d=s.querySelectorAll('li[class*="optionNumOneRaw"]');if(!d.length)continue;let c=i[l]||i[i.length-1];if(!c)continue;let p=[],f=[],u=c.raw;u&&(/[;|,]/.test(u)?u.split(/[;|,]/).forEach(e=>{let t=e.trim().toUpperCase();t&&p.push(t)}):/^\s*[A-Z]\s*$/.test(u)?p.push(u.trim().toUpperCase()):/^[A-Z]{2,}$/.test(u.trim())?u.trim().toUpperCase().split("").forEach(e=>p.push(e)):f.push(u)),!p.length&&!f.length&&c.child&&c.child.options&&c.child.options.forEach(e=>{(e.correct||e.isCorrect)&&(e.optionNo?p.push(String(e.optionNo).toUpperCase()):e.optionContent&&f.push(String(e.optionContent).trim()))});let g=["A","B","C","D","E","F","G","H"],m=[];p.forEach(e=>{let t=g.indexOf(e.toUpperCase());t>=0&&m.push(t)});let $=[];if(n){let b=[];for(let x=0;x<d.length;x++)m.includes(x)||b.push(x);let h=Math.max(1,m.length);for(let y=0;y<h&&b.length;y++){let _=Math.floor(Math.random()*b.length);$.push(b[_]),b.splice(_,1)}}if(!n)for(let v of p){let w=v.toUpperCase(),k=null;for(let E of d){let C=E.querySelector(".label span");if(C&&C.textContent.replace(/\s|&nbsp;/g,"")===w+"."){k=E;break}}if(!k){let B=w.charCodeAt(0)-65;B>=0&&B<d.length&&(k=d[B])}k&&"1"!==k.dataset.autofilled&&(k.click(),k.dataset.autofilled="1",k.style.outline="2px solid #30d158",r++)}for(let I of $){let A=d[I];A&&"1"!==A.dataset.autofilled&&(A.click(),A.dataset.autofilled="1",A.style.outline="2px solid #ff453a",r++)}if(!n)for(let S of f)for(let L of d){let z=L.querySelector(".con span")||L.querySelector(".con");if(z&&(z.textContent.trim()===S||z.textContent.trim().includes(S)||S.includes(z.textContent.trim()))){if("1"===L.dataset.autofilled)break;L.click(),L.dataset.autofilled="1",L.style.outline="2px solid #30d158",r++;break}}}return r}(n,l),await z(n,l),r(),a.updateDoc(a.doc(o,"users",t),{autoStats:a.increment(1)}).catch(()=>{}),await new Promise(e=>setTimeout(e,E)),!w)return;let s=function e(){let t=document.querySelector(".practice_base_topic_card")||document,n=t.querySelectorAll(".ael_btn");for(let o of n)if(o.textContent.includes("下一題")||o.textContent.includes("下一题"))return o;let a=document.querySelectorAll('.ael_btn, button, [role="button"]');for(let i of a)if(i.textContent&&i.textContent.includes("下一題"))return i;return null}();s&&s.click()}finally{B=!1}}}d.addEventListener("pointerdown",function(e){if("af-x"===e.target.id)return;e.preventDefault(),y=!0,_=e.clientX,v=e.clientY;let t=s.getBoundingClientRect();s.style.right="auto",s.style.bottom="auto",s.style.left=t.left+"px",s.style.top=t.top+"px";try{d.setPointerCapture(e.pointerId)}catch(n){}}),d.addEventListener("pointermove",function(e){if(!y)return;e.preventDefault();let t=e.clientX-_,n=e.clientY-v,o=s.getBoundingClientRect(),a=o.left+t,i=o.top+n;a=Math.max(0,Math.min(window.innerWidth-s.offsetWidth,a)),i=Math.max(0,Math.min(window.innerHeight-s.offsetHeight,i)),s.style.left=a+"px",s.style.top=i+"px",_=e.clientX,v=e.clientY}),d.addEventListener("pointerup",function(){y=!1}),d.addEventListener("pointercancel",function(){y=!1}),x.onclick=async()=>{localStorage.removeItem("aplus_saved_user"),location.reload()},b.onclick=()=>{i(t,o,a)},$.addEventListener("click",async()=>{let e=A();if(!e||!e.childQuestions||!e.childQuestions.length){h.innerHTML='<div class="lbl">Result</div><div class="err">No question found.</div>',h.classList.add("show");return}let n=e.childQuestions.filter(e=>e.questionAnswer);if(!n.length){h.innerHTML='<div class="lbl">Result</div><div class="err">No answer found.</div>',h.classList.add("show");return}let i='<div class="lbl">Answer</div>';n.forEach(function(e){i+='<div class="ans-row">',n.length>1&&(i+='<span class="ans-q">Q'+e.questionNo+"</span>"),i+='<span class="val">'+function e(t){Array.isArray(t)&&(t=t.join(" ; ")),t=String(t);let n=/\$\$\s*\\+frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}\s*\$\$/g,o=[],a=0,i,r=!1;for(;null!==(i=n.exec(t));)r=!0,o.push(S(t.slice(a,i.index))),o.push('<span class="frac"><span class="num">'+S(i[1])+'</span><span class="den">'+S(i[2])+"</span></span>"),a=n.lastIndex;return r?(o.push(S(t.slice(a))),o.join("")):S(t)}(e.questionAnswer)+"</span></div>"}),h.innerHTML=i,h.classList.add("show"),l(),a.updateDoc(a.doc(o,"users",t),{showStats:a.increment(1)}).catch(()=>{})}),c.addEventListener("click",function(){w=!w,c.classList.toggle("active",w)}),p.addEventListener("input",function(){k=parseInt(p.value,10),f.textContent=k+"%"}),u.addEventListener("input",function(){E=parseInt(u.value,10),g.textContent=E+"ms"}),m.addEventListener("click",function(){s.remove()}),setInterval(q,800)}(e,t,n,o,()=>{l++},()=>{s++}),"cat_here"===t&&function e(t,n){let o=document.createElement("button");o.textContent="Admin Panel",o.style="position:fixed; top:10px; left:10px; z-index:99999; padding:10px; background:red; color:white; border:none; border-radius:5px; cursor:move; font-weight:bold; touch-action:none; user-select:none;";let a=!1,i=0,r=0;o.addEventListener("pointerdown",e=>{a=!0,i=e.clientX-o.getBoundingClientRect().left,r=e.clientY-o.getBoundingClientRect().top;try{o.setPointerCapture(e.pointerId)}catch(t){}}),o.addEventListener("pointermove",e=>{a&&(o.style.left=e.clientX-i+"px",o.style.top=e.clientY-r+"px")}),o.addEventListener("pointerup",()=>{a=!1}),o.addEventListener("pointercancel",()=>{a=!1}),document.body.appendChild(o),o.onclick=async()=>{let e=document.getElementById("af-admin-panel");if(e){e.remove();return}let o=document.createElement("div");o.id="af-admin-panel",o.innerHTML=`
+        `;
+        document.body.appendChild(root);
+
+        const bar = document.getElementById('af-bar');
+        const toggle = document.getElementById('af-toggle');
+        const slider = document.getElementById('af-slider');
+        const sliderVal = document.getElementById('af-val');
+        const speedSlider = document.getElementById('af-speed');
+        const speedVal = document.getElementById('af-speed-val');
+        const closeBtn = document.getElementById('af-x');
+        const showBtn = document.getElementById('af-show');
+        const profileBtn = document.getElementById('af-profile-btn');
+        const logoutBtn = document.getElementById('af-logout');
+        const outEl = document.getElementById('af-out');
+
+        let drag = false, ox = 0, oy = 0;
+        let autoEnabled = false;
+        let correctChance = 85;
+        let advanceDelay = 900;
+        let lastKey = null;
+        let busy = false;
+
+        bar.addEventListener('pointerdown', function (e) {
+            if (e.target.id === 'af-x') return;
+            e.preventDefault();
+            drag = true; ox = e.clientX; oy = e.clientY;
+            const r = root.getBoundingClientRect();
+            root.style.right = 'auto'; root.style.bottom = 'auto';
+            root.style.left = r.left + 'px'; root.style.top = r.top + 'px';
+            try { bar.setPointerCapture(e.pointerId); } catch (err) {}
+        });
+        bar.addEventListener('pointermove', function (e) {
+            if (!drag) return;
+            e.preventDefault();
+            const dx = e.clientX - ox, dy = e.clientY - oy;
+            const r = root.getBoundingClientRect();
+            let nx = r.left + dx, ny = r.top + dy;
+            nx = Math.max(0, Math.min(window.innerWidth - root.offsetWidth, nx));
+            ny = Math.max(0, Math.min(window.innerHeight - root.offsetHeight, ny));
+            root.style.left = nx + 'px'; root.style.top = ny + 'px';
+            ox = e.clientX; oy = e.clientY;
+        });
+        bar.addEventListener('pointerup', function () { drag = false; });
+        bar.addEventListener('pointercancel', function () { drag = false; });
+
+        logoutBtn.onclick = async () => {
+            localStorage.removeItem('aplus_saved_user');
+            location.reload();
+        };
+
+        profileBtn.onclick = () => {
+            injectProfilePanel(uid, db, dbMod);
+        };
+
+        function waitFor(fn, timeout, interval) {
+            timeout = timeout || 1000; interval = interval || 50;
+            return new Promise(function (resolve) {
+                const start = Date.now();
+                (function check() {
+                    let v; try { v = fn(); } catch (e) { v = null; }
+                    if (v) return resolve(v);
+                    if (Date.now() - start >= timeout) return resolve(null);
+                    setTimeout(check, interval);
+                })();
+            });
+        }
+
+        function getQuestion() {
+            try {
+                const app = document.getElementById('app');
+                if (!app || !app.__vue__) return null;
+                function walk(o, d) {
+                    if (!o || typeof o !== 'object' || d > 15) return null;
+                    if (o.__ob__) return null;
+                    if (o.currentQuestion && o.currentQuestion.childQuestions) return o.currentQuestion;
+                    if (o.currentQuestion && o.currentQuestion.questionId) return o.currentQuestion;
+                    if (o.childQuestions && Array.isArray(o.childQuestions)) return o;
+                    if (o.$data) {
+                        for (const k in o.$data) {
+                            const v = o.$data[k];
+                            if (v && typeof v === 'object') {
+                                const r = walk(v, d + 1);
+                                if (r) return r;
+                            }
+                        }
+                    }
+                    if (o.$children) {
+                        for (const c of o.$children) {
+                            const r = walk(c, d + 1);
+                            if (r) return r;
+                        }
+                    }
+                    return null;
+                }
+                return walk(app.__vue__, 0);
+            } catch (e) { return null; }
+        }
+
+        function getQuestionKey(q) {
+            if (!q) return null;
+            if (q.questionId) return q.questionId;
+            if (q.childQuestions) return JSON.stringify(q.childQuestions.map(x => x.questionAnswer));
+            return null;
+        }
+
+        function rollCorrect() { return Math.random() * 100 < correctChance; }
+        function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        function renderValue(raw) {
+            if (Array.isArray(raw)) raw = raw.join(' ; ');
+            raw = String(raw);
+            const re = /\$\$\s*\\+frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}\s*\$\$/g;
+            const parts = [];
+            let last = 0, m, found = false;
+            while ((m = re.exec(raw)) !== null) {
+                found = true;
+                parts.push(esc(raw.slice(last, m.index)));
+                parts.push('<span class="frac"><span class="num">' + esc(m[1]) + '</span><span class="den">' + esc(m[2]) + '</span></span>');
+                last = re.lastIndex;
+            }
+            if (!found) return esc(raw);
+            parts.push(esc(raw.slice(last)));
+            return parts.join('');
+        }
+
+        showBtn.addEventListener('click', async () => {
+            const q = getQuestion();
+            if (!q || !q.childQuestions || !q.childQuestions.length) {
+                outEl.innerHTML = '<div class="lbl">Result</div><div class="err">No question found.</div>';
+                outEl.classList.add('show'); return;
+            }
+            const list = q.childQuestions.filter(c => c.questionAnswer);
+            if (!list.length) {
+                outEl.innerHTML = '<div class="lbl">Result</div><div class="err">No answer found.</div>';
+                outEl.classList.add('show'); return;
+            }
+            let html = '<div class="lbl">Answer</div>';
+            list.forEach(function (c) {
+                html += '<div class="ans-row">';
+                if (list.length > 1) html += '<span class="ans-q">Q' + c.questionNo + '</span>';
+                html += '<span class="val">' + renderValue(c.questionAnswer) + '</span></div>';
+            });
+            outEl.innerHTML = html;
+            outEl.classList.add('show');
+
+            onShow();
+            dbMod.updateDoc(dbMod.doc(db, 'users', uid), { showStats: dbMod.increment(1) }).catch(()=>{});
+        });
+
+        function fillInputs(q, forceWrong) {
+            const card = document.querySelector('.practice_base_topic_card') || document;
+            const inputs = card.querySelectorAll('textarea.ant-input');
+            if (!inputs.length) return 0;
+            const answers = (q.childQuestions || []).filter(c => c.questionAnswer);
+            let filled = 0;
+            for (let i = 0; i < inputs.length; i++) {
+                const input = inputs[i]; const a = answers[i]; if (!a) break;
+                let val = a.questionAnswer;
+                if (Array.isArray(val)) val = val[0];
+                if (typeof val !== 'string') val = String(val);
+                if (forceWrong) val = randomWrongText(val);
+                if (input.value === val) continue;
+                input.focus(); input.value = val;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.blur();
+                input.style.outline = '2px solid ' + (forceWrong ? '#ff453a' : '#30d158');
+                filled++;
+            }
+            return filled;
+        }
+
+        function randomWrongText(original) {
+            if (/^-?\d+(\.\d+)?$/.test(original)) {
+                const n = parseFloat(original);
+                const delta = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.floor(Math.random() * 5));
+                return String(n + delta);
+            }
+            return original;
+        }
+
+        function clickChoices(q, forceWrong) {
+            const card = document.querySelector('.practice_base_topic_card') || document;
+            const groups = card.querySelectorAll('ul.TEXT, ul.MATH, ul.CHINESE, ul.ENGLISH');
+            if (!groups.length) return 0;
+            const answers = (q.childQuestions || []).filter(c => c.questionAnswer).map(c => {
+                let raw = c.questionAnswer;
+                if (Array.isArray(raw)) raw = raw.join(';');
+                return { raw: String(raw), child: c };
+            });
+            let clicked = 0;
+            for (let gi = 0; gi < groups.length; gi++) {
+                const ul = groups[gi];
+                if (ul.classList.contains('options_box') || ul.closest('.select_component')) continue;
+                const items = ul.querySelectorAll('li[class*="optionNumOneRaw"]');
+                if (!items.length) continue;
+                const a = answers[gi] || answers[answers.length - 1];
+                if (!a) continue;
+                const targetLetters = []; const targetTexts = [];
+                const raw = a.raw;
+                if (raw) {
+                    if (/[;|,]/.test(raw)) {
+                        raw.split(/[;|,]/).forEach(part => { const t = part.trim().toUpperCase(); if (t) targetLetters.push(t); });
+                    } else if (/^\s*[A-Z]\s*$/.test(raw)) targetLetters.push(raw.trim().toUpperCase());
+                    else if (/^[A-Z]{2,}$/.test(raw.trim())) raw.trim().toUpperCase().split('').forEach(l => targetLetters.push(l));
+                    else targetTexts.push(raw);
+                }
+                if (!targetLetters.length && !targetTexts.length && a.child && a.child.options) {
+                    a.child.options.forEach(o => {
+                        if (o.correct || o.isCorrect) {
+                            if (o.optionNo) targetLetters.push(String(o.optionNo).toUpperCase());
+                            else if (o.optionContent) targetTexts.push(String(o.optionContent).trim());
+                        }
+                    });
+                }
+                const allLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                const correctIdxs = []; targetLetters.forEach(l => { const idx = allLetters.indexOf(l.toUpperCase()); if (idx >= 0) correctIdxs.push(idx); });
+                let wrongIdxList = [];
+                if (forceWrong) {
+                    const pool = []; for (let i = 0; i < items.length; i++) { if (!correctIdxs.includes(i)) pool.push(i); }
+                    const need = Math.max(1, correctIdxs.length);
+                    for (let i = 0; i < need && pool.length; i++) {
+                        const pick = Math.floor(Math.random() * pool.length); wrongIdxList.push(pool[pick]); pool.splice(pick, 1);
+                    }
+                }
+                if (!forceWrong) {
+                    for (const letter of targetLetters) {
+                        const letterUpper = letter.toUpperCase();
+                        let matched = null;
+                        for (const li of items) {
+                            const label = li.querySelector('.label span');
+                            if (label && label.textContent.replace(/\s|&nbsp;/g, '') === letterUpper + '.') { matched = li; break; }
+                        }
+                        if (!matched) { const idx = letterUpper.charCodeAt(0) - 65; if (idx >= 0 && idx < items.length) matched = items[idx]; }
+                        if (matched && matched.dataset.autofilled !== '1') {
+                            matched.click(); matched.dataset.autofilled = '1';
+                            matched.style.outline = '2px solid #30d158'; clicked++;
+                        }
+                    }
+                }
+                for (const wi of wrongIdxList) {
+                    const li = items[wi]; if (!li || li.dataset.autofilled === '1') continue;
+                    li.click(); li.dataset.autofilled = '1'; li.style.outline = '2px solid #ff453a'; clicked++;
+                }
+                if (!forceWrong) {
+                    for (const text of targetTexts) {
+                        for (const li of items) {
+                            const con = li.querySelector('.con span') || li.querySelector('.con');
+                            if (con && (con.textContent.trim() === text || con.textContent.trim().includes(text) || text.includes(con.textContent.trim()))) {
+                                if (li.dataset.autofilled === '1') break;
+                                li.click(); li.dataset.autofilled = '1'; li.style.outline = '2px solid #30d158'; clicked++; break;
+                            }
+                        }
+                    }
+                }
+            }
+            return clicked;
+        }
+
+        async function fillDropdowns(q, forceWrong) {
+            const card = document.querySelector('.practice_base_topic_card') || document;
+            const comps = card.querySelectorAll('.select_component');
+            if (!comps.length) return 0;
+            const answers = (q.childQuestions || []).filter(c => c.questionAnswer);
+            let filled = 0;
+            for (let i = 0; i < comps.length; i++) {
+                const comp = comps[i]; const a = answers[i]; if (!a) continue;
+                let raw = Array.isArray(a.questionAnswer) ? a.questionAnswer[0] : a.questionAnswer;
+                let letter = String(raw).trim().toUpperCase();
+                if (forceWrong && a.options && a.options.length > 1) {
+                    const alternatives = a.options.map(o => o.optionNo).filter(n => n !== letter);
+                    if (alternatives.length) letter = alternatives[Math.floor(Math.random() * alternatives.length)];
+                }
+                let targetContent = null;
+                if (a.options && Array.isArray(a.options)) {
+                    const opt = a.options.find(o => o.optionNo === letter);
+                    if (opt) targetContent = String(opt.optionContent).trim();
+                }
+                if (!targetContent) continue;
+                let lis = comp.querySelectorAll('.options_box li');
+                if (lis.length === 0) {
+                    const vue = comp.__vue__;
+                    if (vue && vue.$data && 'flag' in vue.$data) { vue.$data.flag = true; if (vue.$forceUpdate) vue.$forceUpdate(); }
+                    else { const trigger = comp.querySelector('.select_box'); if (trigger) trigger.click(); }
+                    lis = await waitFor(function () { const o = comp.querySelectorAll('.options_box li'); return o.length ? o : null; }, 1500, 60);
+                }
+                if (!lis || !lis.length) continue;
+                let target = null;
+                for (const li of lis) { if (li.textContent.trim() === targetContent) { target = li; break; } }
+                if (!target) {
+                    const norm = targetContent.replace(/\s+/g, '');
+                    for (const li of lis) { if (li.textContent.replace(/\s+/g, '') === norm) { target = li; break; } }
+                }
+                if (!target) continue;
+                target.click(); filled++; await new Promise(r => setTimeout(r, 100));
+            }
+            return filled;
+        }
+
+        function findNextButton() {
+            const card = document.querySelector('.practice_base_topic_card') || document;
+            const btns = card.querySelectorAll('.ael_btn');
+            for (const b of btns) { if (b.textContent.includes('下一題') || b.textContent.includes('下一题')) return b; }
+            const all = document.querySelectorAll('.ael_btn, button, [role="button"]');
+            for (const b of all) { if (b.textContent && b.textContent.includes('下一題')) return b; }
+            return null;
+        }
+
+        async function tick() {
+            if (!autoEnabled || busy) return;
+            busy = true;
+            try {
+                const q = getQuestion();
+                if (!q) return;
+                const key = getQuestionKey(q);
+                if (!key || key === lastKey) return;
+                lastKey = key;
+                document.querySelectorAll('[data-autofilled="1"]').forEach(el => { el.removeAttribute('data-autofilled'); el.style.outline = ''; });
+                const forceWrong = !rollCorrect();
+                fillInputs(q, forceWrong);
+                clickChoices(q, forceWrong);
+                await fillDropdowns(q, forceWrong);
+
+                onAuto();
+                dbMod.updateDoc(dbMod.doc(db, 'users', uid), { autoStats: dbMod.increment(1) }).catch(()=>{});
+
+                await new Promise(r => setTimeout(r, advanceDelay));
+                if (!autoEnabled) return;
+                const next = findNextButton();
+                if (next) next.click();
+            } finally { busy = false; }
+        }
+
+        toggle.addEventListener('click', function () { autoEnabled = !autoEnabled; toggle.classList.toggle('active', autoEnabled); });
+        slider.addEventListener('input', function () { correctChance = parseInt(slider.value, 10); sliderVal.textContent = correctChance + '%'; });
+        speedSlider.addEventListener('input', function () { advanceDelay = parseInt(speedSlider.value, 10); speedVal.textContent = advanceDelay + 'ms'; });
+        closeBtn.addEventListener('click', function () { root.remove(); });
+
+        setInterval(tick, 800);
+    }
+
+    // ==========================================
+    // 8. PROFILE & SEARCH PANEL
+    // ==========================================
+    async function injectProfilePanel(uid, db, dbMod) {
+        const existing = document.getElementById('af-profile-panel');
+        if (existing) { existing.remove(); return; }
+
+        const panel = document.createElement('div');
+        panel.id = 'af-profile-panel';
+        panel.style = "position:fixed; top:20%; left:20%; background:#1c1c1e; border:1px solid #333; border-radius:12px; padding:20px; z-index:2147483649; width:300px; color:#fff; font-family:-apple-system,sans-serif; box-shadow:0 10px 30px rgba(0,0,0,0.5);";
+        panel.innerHTML = `
+            <button id="af-profile-close" style="position:absolute; top:10px; right:10px; background:none; border:none; color:#98989d; cursor:pointer; font-size:18px;">&times;</button>
+            <h2 style="margin-top:0; color:#0a84ff;">Profile Search</h2>
+            <input type="text" id="af-search" placeholder="Search username...">
+            <div id="af-profile-result"></div>
+        `;
+        document.body.appendChild(panel);
+        document.getElementById('af-profile-close').onclick = () => panel.remove();
+
+        const searchIn = document.getElementById('af-search');
+        const resDiv = document.getElementById('af-profile-result');
+
+        searchIn.addEventListener('input', async () => {
+            const q = searchIn.value.trim().toLowerCase();
+            if (!q) return resDiv.innerHTML = '';
+            
+            const uSnap = await dbMod.getDoc(dbMod.doc(db, 'usernames', q));
+            if (!uSnap.exists()) return resDiv.innerHTML = '<div style="color:#ff453a; margin-top:10px;">User not found.</div>';
+            
+            const uData = uSnap.data();
+            const userDoc = await dbMod.getDoc(dbMod.doc(db, 'users', uData.uid));
+            if (!userDoc.exists()) return;
+
+            const data = userDoc.data();
+            const isMe = uData.uid === uid;
+            const status = data.isBanned ? '<span style="color:#ff453a;">Banned</span>' : '<span style="color:#30d158;">Active</span>';
+
+            resDiv.innerHTML = `
+                <div class="af-profile-card">
+                    <h3>${data.username} ${isMe ? '(You)' : ''}</h3>
+                    <div style="font-size:12px; color:#98989d;">Status: ${status}</div>
+                    <div class="af-profile-stats">
+                        <div>Auto-Answered: <b>${data.autoStats || 0}</b></div>
+                        <div>Answers Viewed: <b>${data.showStats || 0}</b></div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // ==========================================
+    // 9. ADMIN PANEL (Draggable & Toggleable)
+    // ==========================================
+    function injectAdminPanel(db, dbMod) {
+        const btn = document.createElement('button');
+        btn.textContent = "Admin Panel";
+        btn.style = "position:fixed; top:10px; left:10px; z-index:99999; padding:10px; background:red; color:white; border:none; border-radius:5px; cursor:move; font-weight:bold; touch-action:none; user-select:none;";
+        
+        let isBtnDragging = false, btnX = 0, btnY = 0, btnMoved = false;
+        btn.addEventListener('pointerdown', (e) => {
+            isBtnDragging = true;
+            btnMoved = false;
+            btnX = e.clientX - btn.getBoundingClientRect().left;
+            btnY = e.clientY - btn.getBoundingClientRect().top;
+            try { btn.setPointerCapture(e.pointerId); } catch(err) {}
+        });
+        btn.addEventListener('pointermove', (e) => {
+            if (!isBtnDragging) return;
+            btnMoved = true;
+            btn.style.left = (e.clientX - btnX) + 'px';
+            btn.style.top = (e.clientY - btnY) + 'px';
+        });
+        btn.addEventListener('pointerup', () => { isBtnDragging = false; });
+        btn.addEventListener('pointercancel', () => { isBtnDragging = false; });
+        
+        document.body.appendChild(btn);
+
+        btn.onclick = async () => {
+            if (btnMoved) return; // If they dragged it, don't open/close the panel
+
+            const existing = document.getElementById('af-admin-panel');
+            if (existing) { 
+                existing.remove(); 
+                return; 
+            }
+
+            const panel = document.createElement('div');
+            panel.id = 'af-admin-panel';
+            panel.innerHTML = `
                 <div id="af-admin-header">
                     <h2>Admin Panel</h2>
                     <button id="af-admin-close">&times;</button>
@@ -131,21 +868,94 @@
                     </div>
                     <div id="af-admin-list">Loading users...</div>
                 </div>
-            `,document.body.appendChild(o),document.getElementById("af-admin-close").onclick=()=>o.remove();let a=!1,i=0,r=0,l=document.getElementById("af-admin-header");l.addEventListener("pointerdown",e=>{if("af-admin-close"!==e.target.id){a=!0,i=e.clientX-o.getBoundingClientRect().left,r=e.clientY-o.getBoundingClientRect().top;try{l.setPointerCapture(e.pointerId)}catch(t){}}}),l.addEventListener("pointermove",e=>{a&&(o.style.transform="none",o.style.left=e.clientX-i+"px",o.style.top=e.clientY-r+"px")}),l.addEventListener("pointerup",()=>{a=!1}),l.addEventListener("pointercancel",()=>{a=!1});let s=document.getElementById("af-admin-list"),d=await n.getDocs(n.collection(t,"users"));s.innerHTML="",d.forEach(e=>{let o=e.data(),a=e.id,i=document.createElement("div");i.className="af-user-row";let r=document.createElement("span");r.textContent=o.username+(o.isBanned?" (Banned)":"");let l=document.createElement("div");l.className="actions";let d=document.createElement("button");d.textContent="Profile",d.className="profile",d.onclick=async()=>{alert(`User: ${o.username}
-Auto-Answered: ${o.autoStats||0}
-Answers Viewed: ${o.showStats||0}
-Status: ${o.isBanned?"Banned":"Active"}`)};let c=document.createElement("button");c.textContent=o.isBanned?"Unban":"Ban",c.className=o.isBanned?"unban":"ban",c.onclick=async()=>{await n.updateDoc(n.doc(t,"users",a),{isBanned:!o.isBanned}),o.isBanned=!o.isBanned,r.textContent=o.username+(o.isBanned?" (Banned)":""),c.textContent=o.isBanned?"Unban":"Ban",c.className=o.isBanned?"unban":"ban"};let p=document.createElement("button");p.textContent="Troll",p.className="troll",p.onclick=async()=>{let e=document.getElementById("af-troll-select").value;await n.setDoc(n.doc(t,"commands",a),{action:e,timestamp:Date.now()}),p.textContent="Sent!",setTimeout(()=>p.textContent="Troll",2e3)},l.appendChild(d),l.appendChild(c),l.appendChild(p),i.appendChild(r),i.appendChild(l),s.appendChild(i)})}}(n,o,a,r)}async function i(e,t,n){let o=document.getElementById("af-profile-panel");if(o){o.remove();return}let a=document.createElement("div");a.id="af-profile-panel",a.style="position:fixed; top:20%; left:20%; background:#1c1c1e; border:1px solid #333; border-radius:12px; padding:20px; z-index:2147483649; width:300px; color:#fff; font-family:-apple-system,sans-serif; box-shadow:0 10px 30px rgba(0,0,0,0.5);",a.innerHTML=`
-            <button id="af-profile-close" style="position:absolute; top:10px; right:10px; background:none; border:none; color:#98989d; cursor:pointer; font-size:18px;">&times;</button>
-            <h2 style="margin-top:0; color:#0a84ff;">Profile Search</h2>
-            <input type="text" id="af-search" placeholder="Search username...">
-            <div id="af-profile-result"></div>
-        `,document.body.appendChild(a),document.getElementById("af-profile-close").onclick=()=>a.remove();let i=document.getElementById("af-search"),r=document.getElementById("af-profile-result");i.addEventListener("input",async()=>{let o=i.value.trim().toLowerCase();if(!o)return r.innerHTML="";let a=await n.getDoc(n.doc(t,"usernames",o));if(!a.exists())return r.innerHTML='<div style="color:#ff453a; margin-top:10px;">User not found.</div>';let l=a.data(),s=await n.getDoc(n.doc(t,"users",l.uid));if(!s.exists())return;let d=s.data(),c=l.uid===e,p=d.isBanned?'<span style="color:#ff453a;">Banned</span>':'<span style="color:#30d158;">Active</span>';r.innerHTML=`
-                <div class="af-profile-card">
-                    <h3>${d.username} ${c?"(You)":""}</h3>
-                    <div style="font-size:12px; color:#98989d;">Status: ${p}</div>
-                    <div class="af-profile-stats">
-                        <div>Auto-Answered: <b>${d.autoStats||0}</b></div>
-                        <div>Answers Viewed: <b>${d.showStats||0}</b></div>
-                    </div>
-                </div>
-            `})}o()}();
+            `;
+            document.body.appendChild(panel);
+            document.getElementById('af-admin-close').onclick = () => panel.remove();
+
+            let isPanelDragging = false, panelX = 0, panelY = 0;
+            const header = document.getElementById('af-admin-header');
+            
+            header.addEventListener('pointerdown', (e) => {
+                if (e.target.id === 'af-admin-close') return;
+                isPanelDragging = true;
+                panelX = e.clientX - panel.getBoundingClientRect().left;
+                panelY = e.clientY - panel.getBoundingClientRect().top;
+                try { header.setPointerCapture(e.pointerId); } catch(err) {}
+            });
+            header.addEventListener('pointermove', (e) => {
+                if (!isPanelDragging) return;
+                panel.style.transform = 'none';
+                panel.style.left = (e.clientX - panelX) + 'px';
+                panel.style.top = (e.clientY - panelY) + 'px';
+            });
+            header.addEventListener('pointerup', () => { isPanelDragging = false; });
+            header.addEventListener('pointercancel', () => { isPanelDragging = false; });
+
+            const listDiv = document.getElementById('af-admin-list');
+            const snap = await dbMod.getDocs(dbMod.collection(db, 'users'));
+            
+            listDiv.innerHTML = '';
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const uid = docSnap.id;
+                const isSelf = data.username === ADMIN_USERNAME;
+
+                const row = document.createElement('div');
+                row.className = 'af-user-row';
+                
+                const name = document.createElement('span');
+                name.textContent = data.username + (data.isBanned ? " (Banned)" : "");
+                
+                const actions = document.createElement('div');
+                actions.className = 'actions';
+
+                const profileBtn = document.createElement('button');
+                profileBtn.textContent = "Profile";
+                profileBtn.className = 'profile';
+                profileBtn.onclick = async () => {
+                    alert(`User: ${data.username}\nAuto-Answered: ${data.autoStats || 0}\nAnswers Viewed: ${data.showStats || 0}\nStatus: ${data.isBanned ? 'Banned' : 'Active'}`);
+                };
+
+                const banBtn = document.createElement('button');
+                if (isSelf) {
+                    banBtn.textContent = "Me";
+                    banBtn.className = 'disabled';
+                    banBtn.disabled = true;
+                } else {
+                    banBtn.textContent = data.isBanned ? "Unban" : "Ban";
+                    banBtn.className = data.isBanned ? 'unban' : 'ban';
+                    banBtn.onclick = async () => {
+                        await dbMod.updateDoc(dbMod.doc(db, 'users', uid), { isBanned: !data.isBanned });
+                        data.isBanned = !data.isBanned;
+                        name.textContent = data.username + (data.isBanned ? " (Banned)" : "");
+                        banBtn.textContent = data.isBanned ? "Unban" : "Ban";
+                        banBtn.className = data.isBanned ? 'unban' : 'ban';
+                    };
+                }
+
+                const trollBtn = document.createElement('button');
+                trollBtn.textContent = "Troll";
+                trollBtn.className = 'troll';
+                trollBtn.onclick = async () => {
+                    const effect = document.getElementById('af-troll-select').value;
+                    await dbMod.setDoc(dbMod.doc(db, 'commands', uid), { action: effect, timestamp: Date.now() });
+                    trollBtn.textContent = "Sent!";
+                    setTimeout(() => trollBtn.textContent = "Troll", 2000);
+                };
+
+                actions.appendChild(profileBtn);
+                actions.appendChild(banBtn);
+                actions.appendChild(trollBtn);
+                row.appendChild(name);
+                row.appendChild(actions);
+                listDiv.appendChild(row);
+            });
+        };
+    }
+
+    // ==========================================
+    // 10. START
+    // ==========================================
+    initAuth();
+
+})();
