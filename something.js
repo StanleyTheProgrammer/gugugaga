@@ -415,6 +415,9 @@
         .catch(e => console.warn("[auth] usernames uid resync failed:", e.code, e.message));
     }
 
+    // Instant heartbeat on login so online status is correct right away
+    dbMod.updateDoc(dbMod.doc(db, "users", uid), { lastSeen: Date.now() }).catch(() => {});
+
     if (window.__afLcWatch) clearInterval(window.__afLcWatch);
     window.__afLcWatch = setInterval(() => {
       if (!localStorage.getItem("aplus_saved_user")) {
@@ -1324,7 +1327,7 @@
 
       function openAddMemberDialog(gid) {
         const overlay = document.createElement("div");
-        overlay.style = "position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2147483650; display:flex; align-items:center; justify-content:center;";
+        overlay.style = "position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2147483650; display:flex; align-items: center; justify-content:center;";
         overlay.innerHTML = `
           <div style="background:#1c1c1e; border:1px solid #333; border-radius:12px; padding:20px; width:320px; color:#fff; font-family:-apple-system,sans-serif;">
             <h3 style="margin:0 0 12px 0; color:#0a84ff; font-size:16px;">Add Member</h3>
@@ -1463,7 +1466,7 @@
           const isSelf = data.username === myUsername;
           const isTargetAdmin = data.username === ADMIN_USERNAME;
           const isTargetMod = data.isMod;
-          const isOnline = data.lastSeen && (Date.now() - data.lastSeen < 45000);
+          const isOnline = isSelf || (data.lastSeen && (Date.now() - data.lastSeen < 45000));
 
           const row = document.createElement("div");
           row.className = "af-user-row";
