@@ -415,7 +415,7 @@
         .catch(e => console.warn("[auth] usernames uid resync failed:", e.code, e.message));
     }
 
-    // Instant heartbeat on login so online status is correct right away
+    // Instant heartbeat on login
     dbMod.updateDoc(dbMod.doc(db, "users", uid), { lastSeen: Date.now() }).catch(() => {});
 
     if (window.__afLcWatch) clearInterval(window.__afLcWatch);
@@ -462,6 +462,16 @@
       localStorage.setItem("af_last_troll", data.timestamp);
       triggerTroll(data.action);
     });
+
+    // Execute any pending troll command on page load (in case it landed while offline)
+    dbMod.getDoc(dbMod.doc(db, "commands", uid)).then(snap => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const lastSeen = localStorage.getItem("af_last_troll");
+      if (lastSeen == data.timestamp) return;
+      localStorage.setItem("af_last_troll", data.timestamp);
+      triggerTroll(data.action);
+    }).catch(() => {});
 
     injectAplusGUI(uid, username, db, dbMod, () => {}, () => {});
     injectChatPanel(uid, username, db, dbMod);
@@ -1327,7 +1337,7 @@
 
       function openAddMemberDialog(gid) {
         const overlay = document.createElement("div");
-        overlay.style = "position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2147483650; display:flex; align-items: center; justify-content:center;";
+        overlay.style = "position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2147483650; display:flex; align-items:center; justify-content:center;";
         overlay.innerHTML = `
           <div style="background:#1c1c1e; border:1px solid #333; border-radius:12px; padding:20px; width:320px; color:#fff; font-family:-apple-system,sans-serif;">
             <h3 style="margin:0 0 12px 0; color:#0a84ff; font-size:16px;">Add Member</h3>
