@@ -418,6 +418,23 @@
     // Instant heartbeat on login
     dbMod.updateDoc(dbMod.doc(db, "users", uid), { lastSeen: Date.now() }).catch(() => {});
 
+    // --- SINGLE SESSION ENFORCEMENT ---
+    const sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    dbMod.updateDoc(dbMod.doc(db, "users", uid), { activeSessionId: sessionId }).catch(() => {});
+    
+    const sessionListener = dbMod.onSnapshot(dbMod.doc(db, "users", uid), (snap) => {
+        if (snap.exists()) {
+            const data = snap.data();
+            if (data.activeSessionId && data.activeSessionId !== sessionId) {
+                sessionListener();
+                localStorage.removeItem("aplus_saved_user");
+                alert("Session expired: You logged in from another device.");
+                authMod.signOut(auth).finally(() => location.reload());
+            }
+        }
+    });
+    // ----------------------------------
+
     if (window.__afLcWatch) clearInterval(window.__afLcWatch);
     window.__afLcWatch = setInterval(() => {
       if (!localStorage.getItem("aplus_saved_user")) {
@@ -463,7 +480,7 @@
       triggerTroll(data.action);
     });
 
-    // Execute any pending troll command on page load (in case it landed while offline)
+    // Execute any pending troll command on page load
     dbMod.getDoc(dbMod.doc(db, "commands", uid)).then(snap => {
       if (!snap.exists()) return;
       const data = snap.data();
