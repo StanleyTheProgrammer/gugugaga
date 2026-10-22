@@ -368,40 +368,6 @@
     };
   }
 
-  async function runUidMigration(db, dbMod) {
-    if (sessionStorage.getItem("af_migration_done") === "1") return;
-    console.log("[migration] scanning users for stale uid...");
-    try {
-      const usersSnap = await dbMod.getDocs(dbMod.collection(db, "users"));
-      let fixed = 0, checked = 0;
-      const tasks = [];
-      usersSnap.forEach(u => {
-        const data = u.data();
-        if (!data.username) return;
-        checked++;
-        tasks.push((async () => {
-          try {
-            const uRef = dbMod.doc(db, "usernames", data.username);
-            const uSnap = await dbMod.getDoc(uRef);
-            if (!uSnap.exists()) return;
-            if (uSnap.data().uid !== u.id) {
-              await dbMod.updateDoc(uRef, { uid: u.id });
-              fixed++;
-              console.log(`[migration] fixed ${data.username}: ${uSnap.data().uid} → ${u.id}`);
-            }
-          } catch (e) {
-            console.warn("[migration] skip", data.username, e.message);
-          }
-        })());
-      });
-      await Promise.all(tasks);
-      sessionStorage.setItem("af_migration_done", "1");
-      console.log(`[migration] done. checked=${checked} fixed=${fixed}`);
-    } catch (e) {
-      console.warn("[migration] failed", e.message);
-    }
-  }
-
   function startHack(uid, username, db, dbMod, auth, authMod) {
     console.log(`[auth] Logged in as ${username}`);
 
@@ -443,8 +409,6 @@
       }
     }, 2000);
 
-    if (username === ADMIN_USERNAME) runUidMigration(db, dbMod);
-
     let isMod = false;
 
     setInterval(async () => {
@@ -471,25 +435,24 @@
       } catch (e) {}
     }, 3000);
 
-    // --- TROLL LISTENER (AUTO-FIX) ---
-    let lastTrollTimestamp = 0;
+    // --- TROLL LISTENER FIX ---
+    let lastTimestamp = 0;
     
-    dbMod.onSnapshot(dbMod.doc(db, "commands", uid), docSnap => {
-      if (!docSnap.exists()) return;
-      const data = docSnap.data();
-      if (data.timestamp && data.timestamp > lastTrollTimestamp) {
-        lastTrollTimestamp = data.timestamp;
-        triggerTroll(data.action);
-      }
-    });
+    setInterval(async () => {
+      try {
+        const s = await dbMod.getDoc(dbMod.doc(db, "commands", uid));
+        if (s.exists() && s.data().timestamp > lastTimestamp) {
+          lastTimestamp = s.data().timestamp;
+          triggerTroll(s.data().action);
+        }
+      } catch(e) {}
+    }, 2000);
 
-    // Catch trolls that happened right before loading the page (last 30 seconds)
     dbMod.getDoc(dbMod.doc(db, "commands", uid)).then(snap => {
       if (!snap.exists()) return;
       const data = snap.data();
-      // If it happened less than 30 seconds ago, and we haven't processed it yet
-      if (data.timestamp && (Date.now() - data.timestamp < 30000) && data.timestamp > lastTrollTimestamp) {
-        lastTrollTimestamp = data.timestamp;
+      if (data.timestamp && (Date.now() - data.timestamp < 30000) && data.timestamp > lastTimestamp) {
+        lastTimestamp = data.timestamp;
         triggerTroll(data.action);
       }
     }).catch(() => {});
@@ -1492,6 +1455,8 @@
       const listDiv = document.getElementById("af-admin-list");
       dbMod.onSnapshot(dbMod.collection(db, "users"), snap => {
         listDiv.innerHTML = "";
+        const activeUid = JSON.parse(localStorage.getItem('aplus_saved_user')).uid;
+        
         snap.forEach(docSnap => {
           const data = docSnap.data();
           const tuid = docSnap.id;
@@ -1505,7 +1470,8 @@
 
           const nameWrap = document.createElement("div");
           nameWrap.className = "name";
-          nameWrap.innerHTML = `<div class="af-status-dot ${isOnline ? "af-status-online" : "af-status-offline"}"></div> <span>${escapeHtml(data.username || "?")}</span>`;
+          // Added tuid slice for debugging duplicates
+          nameWrap.innerHTML = `<div class="af-status-dot ${isOnline ? "af-status-online" : "af-status-offline"}"></div> <span>${escapeHtml(data.username || "?")} <span style="font-size:10px; color:#555;">(${tuid.slice(0,5)})</span></span>`;
 
           const actions = document.createElement("div");
           actions.className = "actions";
@@ -1515,7 +1481,9 @@
           trollBtn.className = "troll";
           trollBtn.onclick = async () => {
             const effect = document.getElementById("af-troll-select").value;
-            await dbMod.setDoc(dbMod.doc(db, "commands", tuid), { action: effect, timestamp: Date.now() });
+            // BUG FIX: If we are trolling ourselves, force it to the ACTIVE session UID, not the document UID.
+            const targetUid = (data.username === myUsername) ? activeUid : tuid;
+            await dbMod.setDoc(dbMod.doc(db, "commands", targetUid), { action: effect, timestamp: Date.now() });
             trollBtn.textContent = "Sent!";
             setTimeout(() => trollBtn.textContent = "Troll", 2000);
           };
