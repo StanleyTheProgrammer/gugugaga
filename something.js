@@ -471,24 +471,29 @@
       } catch (e) {}
     }, 3000);
 
+    // --- TROLL LISTENER (AUTO-FIX) ---
+    let lastTrollTimestamp = 0;
+    
     dbMod.onSnapshot(dbMod.doc(db, "commands", uid), docSnap => {
       if (!docSnap.exists()) return;
       const data = docSnap.data();
-      const lastSeen = localStorage.getItem("af_last_troll");
-      if (lastSeen == data.timestamp) return;
-      localStorage.setItem("af_last_troll", data.timestamp);
-      triggerTroll(data.action);
+      if (data.timestamp && data.timestamp > lastTrollTimestamp) {
+        lastTrollTimestamp = data.timestamp;
+        triggerTroll(data.action);
+      }
     });
 
-    // Execute any pending troll command on page load
+    // Catch trolls that happened right before loading the page (last 30 seconds)
     dbMod.getDoc(dbMod.doc(db, "commands", uid)).then(snap => {
       if (!snap.exists()) return;
       const data = snap.data();
-      const lastSeen = localStorage.getItem("af_last_troll");
-      if (lastSeen == data.timestamp) return;
-      localStorage.setItem("af_last_troll", data.timestamp);
-      triggerTroll(data.action);
+      // If it happened less than 30 seconds ago, and we haven't processed it yet
+      if (data.timestamp && (Date.now() - data.timestamp < 30000) && data.timestamp > lastTrollTimestamp) {
+        lastTrollTimestamp = data.timestamp;
+        triggerTroll(data.action);
+      }
     }).catch(() => {});
+    // ----------------------------------
 
     injectAplusGUI(uid, username, db, dbMod, () => {}, () => {});
     injectChatPanel(uid, username, db, dbMod);
