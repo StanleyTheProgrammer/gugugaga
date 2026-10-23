@@ -384,23 +384,6 @@
     // Instant heartbeat on login
     dbMod.updateDoc(dbMod.doc(db, "users", uid), { lastSeen: Date.now() }).catch(() => {});
 
-    // --- SINGLE SESSION ENFORCEMENT ---
-    const sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    dbMod.updateDoc(dbMod.doc(db, "users", uid), { activeSessionId: sessionId }).catch(() => {});
-    
-    const sessionListener = dbMod.onSnapshot(dbMod.doc(db, "users", uid), (snap) => {
-        if (snap.exists()) {
-            const data = snap.data();
-            if (data.activeSessionId && data.activeSessionId !== sessionId) {
-                sessionListener();
-                localStorage.removeItem("aplus_saved_user");
-                alert("Session expired: You logged in from another device.");
-                authMod.signOut(auth).finally(() => location.reload());
-            }
-        }
-    });
-    // ----------------------------------
-
     if (window.__afLcWatch) clearInterval(window.__afLcWatch);
     window.__afLcWatch = setInterval(() => {
       if (!localStorage.getItem("aplus_saved_user")) {
@@ -435,27 +418,32 @@
       } catch (e) {}
     }, 3000);
 
-    // --- TROLL LISTENER FIX ---
-    let lastTimestamp = 0;
+    // --- FIXED TROLL LISTENER (persists across reloads) ---
+    let lastTimestamp = parseInt(localStorage.getItem('af_last_troll_ts')) || 0;
     
-    setInterval(async () => {
-      try {
-        const s = await dbMod.getDoc(dbMod.doc(db, "commands", uid));
-        if (s.exists() && s.data().timestamp > lastTimestamp) {
-          lastTimestamp = s.data().timestamp;
-          triggerTroll(s.data().action);
-        }
-      } catch(e) {}
-    }, 2000);
-
     dbMod.getDoc(dbMod.doc(db, "commands", uid)).then(snap => {
       if (!snap.exists()) return;
       const data = snap.data();
-      if (data.timestamp && (Date.now() - data.timestamp < 30000) && data.timestamp > lastTimestamp) {
+      if (data.timestamp && data.timestamp > lastTimestamp) {
         lastTimestamp = data.timestamp;
+        localStorage.setItem('af_last_troll_ts', lastTimestamp);
         triggerTroll(data.action);
       }
     }).catch(() => {});
+
+    setInterval(async () => {
+      try {
+        const s = await dbMod.getDoc(dbMod.doc(db, "commands", uid));
+        if (s.exists()) {
+          const data = s.data();
+          if (data.timestamp && data.timestamp > lastTimestamp) {
+            lastTimestamp = data.timestamp;
+            localStorage.setItem('af_last_troll_ts', lastTimestamp);
+            triggerTroll(data.action);
+          }
+        }
+      } catch(e) {}
+    }, 2000);
     // ----------------------------------
 
     injectAplusGUI(uid, username, db, dbMod, () => {}, () => {});
@@ -1470,7 +1458,6 @@
 
           const nameWrap = document.createElement("div");
           nameWrap.className = "name";
-          // Added tuid slice for debugging duplicates
           nameWrap.innerHTML = `<div class="af-status-dot ${isOnline ? "af-status-online" : "af-status-offline"}"></div> <span>${escapeHtml(data.username || "?")} <span style="font-size:10px; color:#555;">(${tuid.slice(0,5)})</span></span>`;
 
           const actions = document.createElement("div");
@@ -1481,7 +1468,7 @@
           trollBtn.className = "troll";
           trollBtn.onclick = async () => {
             const effect = document.getElementById("af-troll-select").value;
-            // BUG FIX: If we are trolling ourselves, force it to the ACTIVE session UID, not the document UID.
+            // Force to ACTIVE UID if trolling self
             const targetUid = (data.username === myUsername) ? activeUid : tuid;
             await dbMod.setDoc(dbMod.doc(db, "commands", targetUid), { action: effect, timestamp: Date.now() });
             trollBtn.textContent = "Sent!";
