@@ -1,4 +1,7 @@
 !function () {
+  /*
+    You cannot copy, reuse or different type of reusing this script without approval..
+  */
   "use strict";
 
   const firebaseConfig = {
