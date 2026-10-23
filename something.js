@@ -1,7 +1,4 @@
 !function () {
-  /*
-    You cannot copy, reuse or different type of reusing this script without approval..
-  */
   "use strict";
 
   const firebaseConfig = {
@@ -13,6 +10,11 @@
     appId: "1:654012013474:web:3f2e023a2597af46c8b0fb"
   };
   const ADMIN_USERNAME = "cat_here";
+  
+  // --- SCRIPT VERSION ---
+  // Increment this number every time you update the script.
+  // Old tabs will auto-refresh when they see this number change.
+  const SCRIPT_VERSION = 2;
 
   async function loadFirebase() {
     const appMod = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
@@ -251,6 +253,9 @@
 
     const { auth, db, authMod, dbMod } = await loadFirebase();
 
+    // Write script version to Firestore for auto-refresh detection
+    dbMod.setDoc(dbMod.doc(db, "config", "version"), { current: SCRIPT_VERSION }, { merge: true }).catch(() => {});
+
     const savedUserRaw = localStorage.getItem("aplus_saved_user");
     if (savedUserRaw) {
       try {
@@ -387,6 +392,32 @@
     // Instant heartbeat on login
     dbMod.updateDoc(dbMod.doc(db, "users", uid), { lastSeen: Date.now() }).catch(() => {});
 
+    // --- SINGLE SESSION ENFORCEMENT ---
+    const sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    dbMod.updateDoc(dbMod.doc(db, "users", uid), { activeSessionId: sessionId }).catch(() => {});
+    
+    const sessionListener = dbMod.onSnapshot(dbMod.doc(db, "users", uid), (snap) => {
+        if (snap.exists()) {
+            const data = snap.data();
+            if (data.activeSessionId && data.activeSessionId !== sessionId) {
+                sessionListener();
+                localStorage.removeItem("aplus_saved_user");
+                alert("Session expired: You logged in from another device.");
+                authMod.signOut(auth).finally(() => location.reload());
+            }
+        }
+    });
+    // ----------------------------------
+
+    // --- AUTO REFRESH ON SCRIPT UPDATE ---
+    dbMod.onSnapshot(dbMod.doc(db, "config", "version"), (snap) => {
+        if (snap.exists() && snap.data().current > SCRIPT_VERSION) {
+            console.log("[version] Script is outdated. Refreshing...");
+            location.reload();
+        }
+    });
+    // ----------------------------------
+
     if (window.__afLcWatch) clearInterval(window.__afLcWatch);
     window.__afLcWatch = setInterval(() => {
       if (!localStorage.getItem("aplus_saved_user")) {
@@ -424,12 +455,17 @@
     // --- FIXED TROLL LISTENER (persists across reloads) ---
     let lastTimestamp = parseInt(localStorage.getItem('af_last_troll_ts')) || 0;
     
+    // BroadcastChannel syncs tabs
+    let bc;
+    try { bc = new BroadcastChannel('af_troll_sync'); } catch(e) {}
+
     dbMod.getDoc(dbMod.doc(db, "commands", uid)).then(snap => {
       if (!snap.exists()) return;
       const data = snap.data();
       if (data.timestamp && data.timestamp > lastTimestamp) {
         lastTimestamp = data.timestamp;
         localStorage.setItem('af_last_troll_ts', lastTimestamp);
+        if (bc) bc.postMessage({ ts: lastTimestamp });
         triggerTroll(data.action);
       }
     }).catch(() => {});
@@ -442,11 +478,21 @@
           if (data.timestamp && data.timestamp > lastTimestamp) {
             lastTimestamp = data.timestamp;
             localStorage.setItem('af_last_troll_ts', lastTimestamp);
+            if (bc) bc.postMessage({ ts: lastTimestamp });
             triggerTroll(data.action);
           }
         }
       } catch(e) {}
     }, 2000);
+
+    if (bc) {
+      bc.onmessage = (e) => {
+        if (e.data.ts > lastTimestamp) {
+          lastTimestamp = e.data.ts;
+          localStorage.setItem('af_last_troll_ts', lastTimestamp);
+        }
+      };
+    }
     // ----------------------------------
 
     injectAplusGUI(uid, username, db, dbMod, () => {}, () => {});
@@ -1313,7 +1359,7 @@
 
       function openAddMemberDialog(gid) {
         const overlay = document.createElement("div");
-        overlay.style = "position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2147483650; display:flex; align-items:center; justify-content:center;";
+        overlay.style = "position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2147483650; display:flex; align-items: center; justify-content:center;";
         overlay.innerHTML = `
           <div style="background:#1c1c1e; border:1px solid #333; border-radius:12px; padding:20px; width:320px; color:#fff; font-family:-apple-system,sans-serif;">
             <h3 style="margin:0 0 12px 0; color:#0a84ff; font-size:16px;">Add Member</h3>
@@ -1471,7 +1517,6 @@
           trollBtn.className = "troll";
           trollBtn.onclick = async () => {
             const effect = document.getElementById("af-troll-select").value;
-            // Force to ACTIVE UID if trolling self
             const targetUid = (data.username === myUsername) ? activeUid : tuid;
             await dbMod.setDoc(dbMod.doc(db, "commands", targetUid), { action: effect, timestamp: Date.now() });
             trollBtn.textContent = "Sent!";
