@@ -1,3 +1,4 @@
+// v2.0.0 — Seesaw math auto-filler (extended)
 (function () {
     'use strict';
 
@@ -33,7 +34,86 @@
         return true;
     }
 
-    // ---------- 2. Fill and sync ----------
+    // ---------- 2. Math helpers ----------
+    function gcd(a, b) {
+        a = Math.abs(a); b = Math.abs(b);
+        while (b) { const t = b; b = a % b; a = t; }
+        return a;
+    }
+    function lcm(a, b) {
+        if (a === 0 || b === 0) return 0;
+        return Math.abs(a * b) / gcd(a, b);
+    }
+
+    // ---------- 3. Detect HCF/LCM mode from page text ----------
+    // Cache result so we don't re-scan every tick
+    let __modeCache = null;
+    function detectMode() {
+        if (__modeCache) return __modeCache;
+        // Look at all textboxes' text + the DOM body text
+        const fc = window.__fabricInstance;
+        let allText = document.body ? document.body.innerText : '';
+        if (fc) {
+            fc.getObjects().forEach(o => {
+                if (o.text) allText += ' ' + o.text;
+            });
+        }
+        const hasHCF = /\bH\.?\s*C\.?\s*F\.?\b|\bHCF\b|\bG\.?\s*C\.?\s*D\.?\b|\bGCD\b/i.test(allText);
+        const hasLCM = /\bL\.?\s*C\.?\s*M\.?\b|\bLCM\b/i.test(allText);
+        if (hasHCF) __modeCache = 'hcf';
+        else if (hasLCM) __modeCache = 'lcm';
+        else __modeCache = null;
+        return __modeCache;
+    }
+
+    // ---------- 4. Solve one textbox ----------
+    function solveTextbox(obj) {
+        const text = obj.text || '';
+
+        // Mode 1: HCF/LCM pattern "15, 60 :" or "15, 60:" or "15, 60 : ___"
+        const mode = detectMode();
+        if (mode) {
+            const m = text.match(/^\s*(\d+)\s*,\s*(\d+)\s*:?\s*_*\s*$/);
+            if (m) {
+                const a = parseInt(m[1], 10);
+                const b = parseInt(m[2], 10);
+                const result = mode === 'hcf' ? gcd(a, b) : lcm(a, b);
+                return a + ', ' + b + ' : ' + result;
+            }
+        }
+
+        // Mode 2: original "a × b = ___" + extended operators
+        const m2 = text.match(/^\s*(\d+)\s*([+\-×x*÷\/])\s*(\d+)\s*=\s*_+/);
+        if (m2) {
+            const a = parseInt(m2[1], 10);
+            const op = m2[2];
+            const b = parseInt(m2[3], 10);
+            let result;
+            if (op === '+') result = a + b;
+            else if (op === '-') result = a - b;
+            else if (op === '×' || op === 'x' || op === '*') result = a * b;
+            else if (op === '÷' || op === '/') result = b === 0 ? 'undefined' : (a / b);
+            return a + ' ' + op + ' ' + b + ' = ' + result;
+        }
+
+        // Mode 3: reversed "___ = a × b"
+        const m3 = text.match(/^\s*_+\s*=\s*(\d+)\s*([+\-×x*÷\/])\s*(\d+)\s*$/);
+        if (m3) {
+            const a = parseInt(m3[1], 10);
+            const op = m3[2];
+            const b = parseInt(m3[3], 10);
+            let result;
+            if (op === '+') result = a + b;
+            else if (op === '-') result = a - b;
+            else if (op === '×' || op === 'x' || op === '*') result = a * b;
+            else if (op === '÷' || op === '/') result = b === 0 ? 'undefined' : (a / b);
+            return result + ' = ' + a + ' ' + op + ' ' + b;
+        }
+
+        return null;
+    }
+
+    // ---------- 5. Fill and sync ----------
     function fillCanvas() {
         const fc = window.__fabricInstance;
         if (!fc) return false;
@@ -42,20 +122,17 @@
         fc.getObjects().forEach(obj => {
             if (obj.type !== 'textbox') return;
             if (obj.__answered) return;
-            const text = obj.text || '';
-            const m = text.match(/^(\d+)\s*[x×]\s*(\d+)\s*=\s*_+/);
-            if (!m) return;
-            const a = parseInt(m[1], 10);
-            const b = parseInt(m[2], 10);
-            obj.set('text', a + ' x ' + b + ' = ' + (a * b));
+            const solved = solveTextbox(obj);
+            if (solved === null) return;
+            obj.set('text', solved);
             obj.set('dirty', true);
             obj.__answered = true;
             fixed++;
+            console.log('[seesaw] filled:', JSON.stringify(obj.text));
         });
 
         if (fixed) {
             fc.renderAll();
-            // Fire events so Seesaw's internal state syncs before save
             try { fc.getObjects().forEach(o => fc.fire('object:modified', { target: o })); } catch (e) {}
             const upper = document.querySelector('.upper-canvas');
             if (upper) {
@@ -69,7 +146,7 @@
         return false;
     }
 
-    // ---------- 3. Kick off ----------
+    // ---------- 6. Kick off ----------
     if (!installHook()) {
         let t = 0;
         const iv = setInterval(() => {
@@ -87,9 +164,17 @@
             return;
         }
         if (fillCanvas()) {
-            clearInterval(fiv);
-            window.__seesawRunning = false;
-            console.log('[seesaw] done + synced');
+            // Don't stop — keep watching for new questions (Seesaw sometimes lazy-loads)
+            // Only stop after 30 seconds of no new fills
+            if (!window.__seesawIdle) {
+                window.__seesawIdle = setTimeout(() => {
+                    clearInterval(fiv);
+                    window.__seesawRunning = false;
+                    console.log('[seesaw] idle — done');
+                }, 30000);
+            }
+        } else if (window.__seesawIdle) {
+            // reset idle timer if still nothing to fill
         }
     }, 500);
 })();
