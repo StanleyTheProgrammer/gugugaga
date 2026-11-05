@@ -1,4 +1,278 @@
-!function(){"use strict";let e={apiKey:"AIzaSyDd15smQKX5BWWlQ3PjzZ6cEi18P7zKeWg",authDomain:"aplus-5383f.firebaseapp.com",projectId:"aplus-5383f",storageBucket:"aplus-5383f.firebasestorage.app",messagingSenderId:"654012013474",appId:"1:654012013474:web:3f2e023a2597af46c8b0fb"},t="cat_here";async function a(){let t=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"),a=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"),r=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"),o=t.initializeApp(e);return{auth:a.getAuth(o),db:r.getFirestore(o),authMod:a,dbMod:r}}let r=`
+// v1.5.0
+!function () {
+  "use strict";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDd15smQKX5BWWlQ3PjzZ6cEi18P7zKeWg",
+    authDomain: "aplus-5383f.firebaseapp.com",
+    projectId: "aplus-5383f",
+    storageBucket: "aplus-5383f.firebasestorage.app",
+    messagingSenderId: "654012013474",
+    appId: "1:654012013474:web:3f2e023a2597af46c8b0fb"
+  };
+  const ADMIN_USERNAME = "cat_here";
+  const SCRIPT_VERSION = 7;
+
+  // ============================================================
+  // i18n (Cantonese / English)
+  // ============================================================
+  const LANG_KEY = "af_lang";
+  let lang = localStorage.getItem(LANG_KEY) || "en";
+
+  const i18n = {
+    en: {
+      // Auth
+      authTitleLogin: "Welcome back",
+      authTitleRegister: "Create account",
+      authSubLogin: "Sign in to continue",
+      authSubRegister: "Join the fun",
+      authUsername: "Username",
+      authPassword: "Password",
+      authLogin: "Log in",
+      authRegister: "Register",
+      authSwitchToRegister: "Need an account? Register",
+      authSwitchToLogin: "Already have an account? Log in",
+      authFillFields: "Fill all fields.",
+      authPasswordMax: "Password max 20 chars.",
+      authProcessing: "Processing...",
+      authAccountNotFound: "Account not found.",
+      authWrongPassword: "Wrong password.",
+      authBanned: "This account is BANNED.",
+      authDeviceRegistered: "This device is already registered.",
+      authUsernameTaken: "Username taken.",
+
+      // Main panel
+      panelTitle: "Autofill",
+      panelAuto: "Auto",
+      panelAutoSkip: "Auto-skip",
+      panelSpeed: "Speed",
+      panelCorrect: "Correct",
+      panelShowAnswer: "Show answer",
+      panelProfile: "Profile Search",
+      panelLogout: "Log Out",
+
+      // Video
+      videoTitle: "Video Scrubber",
+      videoNoVideo: "No video detected",
+
+      // Chat
+      chatFab: "Chat",
+      chatTitle: "Chat",
+      chatTabGlobal: "Global",
+      chatTabGroups: "Groups",
+      chatPlaceholder: "Type a message...",
+      chatSend: "Send",
+      chatSending: "sending…",
+      chatFailed: "failed",
+      chatNoMessages: "No messages yet.",
+      chatYourGroups: "Your Groups",
+      chatNewGroup: "+ New Group",
+      chatNoGroups: "No groups yet.",
+      chatGroup: "Group",
+      chatAddMember: "+ Add Member",
+      chatLeaveGroup: "Leave Group",
+      chatCreateGroup: "Create Group",
+      chatGroupName: "Group name",
+      chatSearchUsers: "Search users to add...",
+      chatSearchUser: "Search username...",
+      chatCancel: "Cancel",
+      chatCreate: "Create",
+      chatClose: "Close",
+      chatAdd: "+ Add",
+      chatNoUser: "No user found.",
+      chatAlreadyMember: "Already a member.",
+
+      // Admin
+      adminFab: "Admin",
+      adminTitle: "Admin & Mod Panel",
+      adminTrollTool: "Troll Tool",
+      adminAllUsers: "All Users",
+      adminTroll: "Troll",
+      adminTrollSent: "Sent!",
+      adminBan: "Ban",
+      adminUnban: "Unban",
+      adminMakeMod: "Make Mod",
+      adminDemod: "Demod",
+      adminMe: "Me",
+      adminAdmin: "Admin",
+      adminMod: "Mod",
+
+      // Troll options
+      trollGugugaga: "GUGUGAGA Spam",
+      trollShake: "Shake Screen",
+      trollFlip: "Flip Screen",
+      trollAlert: "Random Alert",
+      trollCursor: "Spooky Cursor",
+      trollZoom: "Infinite Zoom",
+      trollScaryFace: "Scary Face",
+      trollScaryBlood: "Blood Overlay",
+      trollScaryInvert: "Inverted Colors",
+      trollScaryStatic: "Static Noise + Scream",
+
+      // Session / errors
+      sessionExpired: "Session expired: You logged in from another device.",
+      youBanned: "You have been BANNED.",
+      accountBanned: "Account Banned.",
+
+      // Profile
+      profileTitle: "Profile Search",
+      profileSearchPlaceholder: "Search username...",
+      profileNotFound: "User not found.",
+      profileStatus: "Status",
+      profileActive: "Active",
+      profileBanned: "Banned",
+      profileAutoStats: "Auto-Answered",
+      profileShowStats: "Answers Viewed",
+      profileYou: "(You)",
+
+      // Language
+      langLabel: "中",
+      langTitle: "Switch to Cantonese"
+    },
+    yue: {
+      // Auth
+      authTitleLogin: "歡迎返嚟",
+      authTitleRegister: "建立帳戶",
+      authSubLogin: "登入繼續",
+      authSubRegister: "加入一齊玩",
+      authUsername: "用戶名",
+      authPassword: "密碼",
+      authLogin: "登入",
+      authRegister: "註冊",
+      authSwitchToRegister: "未有帳戶？註冊",
+      authSwitchToLogin: "已經有帳戶？登入",
+      authFillFields: "請填寫所有欄位。",
+      authPasswordMax: "密碼最多 20 個字。",
+      authProcessing: "處理中...",
+      authAccountNotFound: "搵唔到帳戶。",
+      authWrongPassword: "密碼錯誤。",
+      authBanned: "呢個帳戶已被封鎖。",
+      authDeviceRegistered: "呢部裝置已經註冊咗。",
+      authUsernameTaken: "用戶名已被使用。",
+
+      // Main panel
+      panelTitle: "自動填寫",
+      panelAuto: "自動",
+      panelAutoSkip: "自動跳過",
+      panelSpeed: "速度",
+      panelCorrect: "正確率",
+      panelShowAnswer: "顯示答案",
+      panelProfile: "查詢個人資料",
+      panelLogout: "登出",
+
+      // Video
+      videoTitle: "影片控制",
+      videoNoVideo: "未偵測到影片",
+
+      // Chat
+      chatFab: "聊天",
+      chatTitle: "聊天",
+      chatTabGlobal: "全體",
+      chatTabGroups: "群組",
+      chatPlaceholder: "輸入訊息...",
+      chatSend: "發送",
+      chatSending: "發送緊…",
+      chatFailed: "失敗",
+      chatNoMessages: "仲未有訊息。",
+      chatYourGroups: "你嘅群組",
+      chatNewGroup: "+ 新群組",
+      chatNoGroups: "仲未有群組。",
+      chatGroup: "群組",
+      chatAddMember: "+ 加入成員",
+      chatLeaveGroup: "離開群組",
+      chatCreateGroup: "建立群組",
+      chatGroupName: "群組名稱",
+      chatSearchUsers: "搜尋要加入嘅用戶...",
+      chatSearchUser: "搜尋用戶名...",
+      chatCancel: "取消",
+      chatCreate: "建立",
+      chatClose: "關閉",
+      chatAdd: "+ 加入",
+      chatNoUser: "搵唔到用戶。",
+      chatAlreadyMember: "已經係成員。",
+
+      // Admin
+      adminFab: "管理員",
+      adminTitle: "管理員及版主面板",
+      adminTrollTool: "惡作劇工具",
+      adminAllUsers: "所有用戶",
+      adminTroll: "惡作劇",
+      adminTrollSent: "已發送！",
+      adminBan: "封鎖",
+      adminUnban: "解封",
+      adminMakeMod: "設為版主",
+      adminDemod: "取消版主",
+      adminMe: "我",
+      adminAdmin: "管理員",
+      adminMod: "版主",
+
+      // Troll options
+      trollGugugaga: "GUGUGAGA 洗版",
+      trollShake: "震動畫面",
+      trollFlip: "翻轉畫面",
+      trollAlert: "隨機彈窗",
+      trollCursor: "詭異滑鼠",
+      trollZoom: "無限放大",
+      trollScaryFace: "恐怖圖片",
+      trollScaryBlood: "血紅色畫面",
+      trollScaryInvert: "反轉顏色",
+      trollScaryStatic: "雪花聲效",
+
+      // Session / errors
+      sessionExpired: "會話已過期：你喺另一部裝置登入咗。",
+      youBanned: "你已被封鎖。",
+      accountBanned: "帳戶被封鎖。",
+
+      // Profile
+      profileTitle: "查詢個人資料",
+      profileSearchPlaceholder: "搜尋用戶名...",
+      profileNotFound: "搵唔到用戶。",
+      profileStatus: "狀態",
+      profileActive: "使用中",
+      profileBanned: "被封鎖",
+      profileAutoStats: "自動答題",
+      profileShowStats: "睇過答案",
+      profileYou: "(你)",
+
+      // Language
+      langLabel: "EN",
+      langTitle: "切換至英文"
+    }
+  };
+
+  function t(key) {
+    return (i18n[lang] && i18n[lang][key]) || (i18n.en[key] || key);
+  }
+
+  function setLang(newLang) {
+    lang = newLang;
+    localStorage.setItem(LANG_KEY, newLang);
+    // Re-render everything: easiest path is a reload
+    location.reload();
+  }
+
+  function injectLangToggle() {
+    if (document.getElementById("af-lang-toggle")) return;
+    const btn = document.createElement("button");
+    btn.id = "af-lang-toggle";
+    btn.textContent = t("langLabel");
+    btn.title = t("langTitle");
+    btn.onclick = () => setLang(lang === "en" ? "yue" : "en");
+    document.body.appendChild(btn);
+  }
+
+  // ============================================================
+  // Firebase
+  // ============================================================
+  async function loadFirebase() {
+    const appMod = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
+    const authMod = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+    const dbMod = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+    const app = appMod.initializeApp(firebaseConfig);
+    return { auth: authMod.getAuth(app), db: dbMod.getFirestore(app), authMod, dbMod };
+  }
+
+  const css = `
     :root {
       --bg: #121214;
       --surface: #1a1a1e;
@@ -17,6 +291,28 @@
       --radius: 10px;
       --radius-lg: 14px;
       --shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    #af-lang-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 2147483651;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: "Inter", -apple-system, sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: background .15s, border-color .15s;
+    }
+    #af-lang-toggle:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-light);
     }
 
     #af-auth-modal {
@@ -66,13 +362,8 @@
       transition: border-color .15s;
     }
 
-    #af-auth-box input:focus {
-      border-color: var(--accent);
-    }
-
-    #af-auth-box input::placeholder {
-      color: var(--text-muted);
-    }
+    #af-auth-box input:focus { border-color: var(--accent); }
+    #af-auth-box input::placeholder { color: var(--text-muted); }
 
     #af-auth-box button {
       width: 100%;
@@ -88,12 +379,7 @@
     }
 
     #af-auth-box button:active { transform: scale(0.98); }
-
-    #af-auth-btn {
-      background: var(--accent);
-      color: #fff;
-    }
-
+    #af-auth-btn { background: var(--accent); color: #fff; }
     #af-auth-btn:hover { background: var(--accent-hover); }
 
     #af-auth-switch {
@@ -218,7 +504,6 @@
     }
 
     .af-status-offline { background: var(--text-muted); }
-
     .af-user-row .actions { display: flex; gap: 6px; }
 
     .af-user-row button {
@@ -286,31 +571,14 @@
       gap: 8px;
     }
 
-    .af-chat-msg {
-      font-size: 13.5px;
-      line-height: 1.5;
-    }
-
-    .af-chat-msg .author {
-      font-weight: 600;
-      color: var(--accent);
-      margin-right: 6px;
-    }
-
+    .af-chat-msg { font-size: 13.5px; line-height: 1.5; }
+    .af-chat-msg .author { font-weight: 600; color: var(--accent); margin-right: 6px; }
     .af-chat-msg .author.admin { color: var(--danger); }
     .af-chat-msg .author.mod { color: var(--warning); }
     .af-chat-msg .text { color: var(--text); }
 
-    #af-chat-form, #af-group-msg-form {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    #af-chat-input, #af-group-msg-input {
-      margin-bottom: 0;
-      flex-grow: 1;
-    }
+    #af-chat-form, #af-group-msg-form { display: flex; gap: 8px; margin-top: 12px; }
+    #af-chat-input, #af-group-msg-input { margin-bottom: 0; flex-grow: 1; }
 
     #af-chat-send, #af-group-msg-send {
       padding: 0 18px;
@@ -347,20 +615,9 @@
 
     .af-tab:hover { color: var(--text); }
     .af-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .af-tab-content { padding: 16px 20px; overflow-y: auto; flex: 1; }
 
-    .af-tab-content {
-      padding: 16px 20px;
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    #af-group-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      max-height: 160px;
-      overflow-y: auto;
-    }
+    #af-group-list { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; }
 
     .af-group-item {
       display: flex;
@@ -377,16 +634,10 @@
 
     .af-group-item:hover { border-color: var(--border-light); }
     .af-group-item.selected { border-color: var(--accent); }
-
     .af-group-item .gname { font-weight: 600; }
     .af-group-item .gmembers { color: var(--text-dim); font-size: 11.5px; margin-top: 2px; }
 
-    #af-group-members {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 12px;
-    }
+    #af-group-members { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 
     .af-member-chip {
       background: var(--bg);
@@ -399,12 +650,7 @@
       gap: 6px;
     }
 
-    .af-member-chip .rm {
-      cursor: pointer;
-      color: var(--danger);
-      font-weight: bold;
-      margin-left: 2px;
-    }
+    .af-member-chip .rm { cursor: pointer; color: var(--danger); font-weight: bold; margin-left: 2px; }
 
     #af-group-search-results {
       max-height: 140px;
@@ -476,13 +722,7 @@
       touch-action: none;
     }
 
-    #af-root .bar span {
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.1px;
-      color: var(--text);
-      pointer-events: none;
-    }
+    #af-root .bar span { font-size: 12px; font-weight: 600; letter-spacing: 0.1px; color: var(--text); pointer-events: none; }
 
     #af-root .bar b {
       background: none;
@@ -498,7 +738,6 @@
     }
 
     #af-root .bar b:hover { color: var(--text); }
-
     #af-root .body { padding: 14px; }
 
     #af-root .row {
@@ -508,11 +747,7 @@
       margin-bottom: 12px;
     }
 
-    #af-root .label {
-      font-size: 12.5px;
-      color: var(--text-dim);
-      letter-spacing: 0.1px;
-    }
+    #af-root .label { font-size: 12.5px; color: var(--text-dim); letter-spacing: 0.1px; }
 
     #af-root .toggle {
       position: relative;
@@ -544,13 +779,7 @@
 
     #af-root .sliderBlock { margin-bottom: 12px; }
 
-    #af-root .sliderHead {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 6px;
-    }
-
+    #af-root .sliderHead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
     #af-root .sliderRow { display: flex; align-items: center; gap: 10px; }
 
     #af-root .sliderVal {
@@ -700,7 +929,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 12px 16px;
-      width: 420px;
+      width: 360px;
       max-width: calc(100vw - 40px);
       color: var(--text);
       font-family: "Inter", -apple-system, sans-serif;
@@ -723,26 +952,10 @@
       text-transform: none;
     }
 
-    #af-video-scrubber .row {
-      display: flex; gap: 8px; align-items: center; margin-top: 8px;
-    }
-
-    #af-video-scrubber button {
-      background: var(--border); border: none; color: var(--text);
-      padding: 6px 12px; border-radius: var(--radius-sm);
-      font-family: inherit; font-size: 12px; font-weight: 500;
-      cursor: pointer; transition: background .12s;
-    }
-
-    #af-video-scrubber button:hover { background: var(--border-light); }
-    #af-video-scrubber button.primary { background: var(--accent); color: #fff; }
-    #af-video-scrubber button.primary:hover { background: var(--accent-hover); }
-    #af-video-scrubber button.danger { background: var(--danger); color: #fff; }
-
     #af-video-scrubber input[type="range"] {
       -webkit-appearance: none; appearance: none;
-      flex: 1; width: 100%; height: 4px; background: var(--border);
-      border-radius: 2px; outline: none;
+      width: 100%; height: 4px; background: var(--border);
+      border-radius: 2px; outline: none; margin-top: 4px;
     }
 
     #af-video-scrubber input[type="range"]::-webkit-slider-thumb {
@@ -757,174 +970,1571 @@
       border-radius: 50%; cursor: pointer; border: none;
     }
 
-    #af-video-scrubber .status {
-      font-size: 10.5px; color: var(--text-muted);
-      margin-top: 8px; min-height: 14px;
-    }
-
-    #af-video-scrubber .status.ok { color: var(--success); }
-    #af-video-scrubber .status.err { color: var(--danger); }
-
-    #af-video-scrubber .autoskip-row {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 8px;
-    }
-
-    #af-video-scrubber .autoskip-label {
-      font-size: 12px; color: var(--text);
-      display: flex; align-items: center; gap: 8px;
-    }
-
-    #af-video-scrubber .autoskip-toggle {
-      position: relative; width: 38px; height: 22px;
-      background: var(--border); border-radius: 11px;
-      cursor: pointer; transition: background .15s;
-      flex-shrink: 0;
-    }
-
-    #af-video-scrubber .autoskip-toggle.active { background: var(--accent); }
-
-    #af-video-scrubber .autoskip-toggle .knob {
-      position: absolute; top: 2px; left: 2px;
-      width: 18px; height: 18px; background: #fff;
-      border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-      transition: transform .15s;
-    }
-
-    #af-video-scrubber .autoskip-toggle.active .knob { transform: translateX(16px); }
-
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-  `;function o(e){document.body.style.animation="",document.body.style.transform="",document.body.style.filter="";let t=document.getElementById("af-troll-overlay");if(t&&t.remove(),window.__trollInt&&clearInterval(window.__trollInt),"shake"===e||"gugugaga"===e){let a=document.createElement("style");a.textContent="@keyframes af-shake{0%{transform:translate(1px,1px) rotate(0deg)}10%{transform:translate(-1px,-2px) rotate(-1deg)}20%{transform:translate(-3px,0) rotate(1deg)}30%{transform:translate(3px,2px) rotate(0deg)}40%{transform:translate(1px,-1px) rotate(1deg)}50%{transform:translate(-1px,2px) rotate(-1deg)}60%{transform:translate(-3px,1px) rotate(0deg)}70%{transform:translate(3px,1px) rotate(-1deg)}80%{transform:translate(-1px,-1px) rotate(1deg)}90%{transform:translate(1px,2px) rotate(0deg)}100%{transform:translate(1px,-2px) rotate(-1deg)}}",document.head.appendChild(a),document.body.style.animation="af-shake 0.5s infinite",setTimeout(()=>document.body.style.animation="",5e3)}if("gugugaga"===e){let r=document.createElement("div");r.id="af-troll-overlay",r.style="position:fixed; inset:0; z-index:2147483645; pointer-events:none; overflow:hidden; background:rgba(0,0,0,0.5);",document.body.appendChild(r),window.__trollInt=setInterval(()=>{let e=document.createElement("div");e.textContent="GUGUGAGA",e.style=`position:absolute; color:red; font-weight:bold; font-family:Comic Sans MS,sans-serif; font-size:${40*Math.random()+20}px; left:${100*Math.random()}vw; top:${100*Math.random()}vh; transform:rotate(${360*Math.random()}deg); opacity:${.5*Math.random()+.5};`,r.appendChild(e),setTimeout(()=>e.remove(),1500)},30),setTimeout(()=>{clearInterval(window.__trollInt),r.remove()},5e3)}if("flip"===e&&(document.body.style.transform="rotate(180deg)",setTimeout(()=>document.body.style.transform="",5e3)),"alert"===e&&alert("You have been trolled!"),"scary_face"===e){let o=document.createElement("div");o.id="af-troll-overlay",o.style="position:fixed; inset:0; z-index:2147483645; pointer-events:none; display:flex; justify-content:center; align-items:center; background:black;",o.innerHTML='<img src="https://raw.githubusercontent.com/StanleyTheProgrammer/gugugaga/main/scary.jpeg" style="width:100vh; object-fit:cover;">',document.body.appendChild(o),setTimeout(()=>o.remove(),3e3)}if("scary_blood"===e){let n=document.createElement("div");n.id="af-troll-overlay",n.style="position:fixed; inset:0; z-index:2147483645; pointer-events:none; background:rgba(255,0,0,0.8); display:flex; justify-content:center; align-items:center; color:white; font-size:10vw; font-family:serif; font-weight:bold; text-shadow:0 0 20px black;",n.textContent="DON'T LOOK BEHIND YOU",document.body.appendChild(n),setTimeout(()=>n.remove(),3e3)}if("scary_invert"===e&&(document.body.style.filter="invert(1) hue-rotate(180deg) contrast(2)",setTimeout(()=>document.body.style.filter="",3e3)),"scary_static"===e){document.body.style.filter="contrast(200%) grayscale(100%) brightness(50%)";let i=document.createElement("div");i.id="af-troll-overlay",i.style="position:fixed; inset:0; z-index:2147483645; pointer-events:none; background:url('https://i.gifer.com/7E2x.gif') center/cover; opacity:0.8;",document.body.appendChild(i),new Audio("https://www.soundjay.com/misc/sounds/static-1.mp3").play().catch(()=>{}),setTimeout(()=>{i.remove(),document.body.style.filter=""},3e3)}if("troll_cursor"===e){let s=document.createElement("style");s.id="af-troll-cursor",s.textContent="* { cursor: url('https://cur.cursors-4u.net/cursors/cur-9/cur817.cur'), auto !important; }",document.head.appendChild(s),setTimeout(()=>s.remove(),5e3)}if("troll_zoom"===e){document.body.style.transition="transform 0.1s";let l=1;window.__trollInt=setInterval(()=>{l+=.1,document.body.style.transform=`scale(${l})`,l>3&&(clearInterval(window.__trollInt),document.body.style.transform="",document.body.style.transition="")},100)}}async function n(){let e=document.createElement("style");e.textContent=r,document.head.appendChild(e);let{auth:o,db:n,authMod:s,dbMod:l}=await a();l.setDoc(l.doc(n,"config","version"),{current:5},{merge:!0}).catch(()=>{});let d=localStorage.getItem("aplus_saved_user");if(d)try{let c=JSON.parse(d);await s.signInAnonymously(o);let p=o.currentUser.uid,u=p||c.uid,f=await l.getDoc(l.doc(n,"users",u));if(f.exists()&&f.data().isBanned&&c.username!==t)throw localStorage.removeItem("aplus_saved_user"),Error("Account Banned.");c.username===t&&f.exists()&&f.data().isBanned&&await l.updateDoc(l.doc(n,"users",u),{isBanned:!1}),i(u,c.username,n,l,o,s);return}catch(g){console.log("Auto-login failed",g)}let m=document.createElement("div");m.id="af-auth-modal",m.innerHTML=`
+  `;
+
+  function triggerTroll(action) {
+    document.body.style.animation = "";
+    document.body.style.transform = "";
+    document.body.style.filter = "";
+    const old = document.getElementById("af-troll-overlay");
+    if (old) old.remove();
+    if (window.__trollInt) clearInterval(window.__trollInt);
+
+    if (action === "shake" || action === "gugugaga") {
+      const s = document.createElement("style");
+      s.textContent = "@keyframes af-shake{0%{transform:translate(1px,1px) rotate(0deg)}10%{transform:translate(-1px,-2px) rotate(-1deg)}20%{transform:translate(-3px,0) rotate(1deg)}30%{transform:translate(3px,2px) rotate(0deg)}40%{transform:translate(1px,-1px) rotate(1deg)}50%{transform:translate(-1px,2px) rotate(-1deg)}60%{transform:translate(-3px,1px) rotate(0deg)}70%{transform:translate(3px,1px) rotate(-1deg)}80%{transform:translate(-1px,-1px) rotate(1deg)}90%{transform:translate(1px,2px) rotate(0deg)}100%{transform:translate(1px,-2px) rotate(-1deg)}}";
+      document.head.appendChild(s);
+      document.body.style.animation = "af-shake 0.5s infinite";
+      setTimeout(() => document.body.style.animation = "", 5000);
+    }
+
+    if (action === "gugugaga") {
+      const overlay = document.createElement("div");
+      overlay.id = "af-troll-overlay";
+      overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; overflow:hidden; background:rgba(0,0,0,0.5);";
+      document.body.appendChild(overlay);
+      window.__trollInt = setInterval(() => {
+        const txt = document.createElement("div");
+        txt.textContent = "GUGUGAGA";
+        txt.style = `position:absolute; color:red; font-weight:bold; font-family:Comic Sans MS,sans-serif; font-size:${Math.random() * 40 + 20}px; left:${Math.random() * 100}vw; top:${Math.random() * 100}vh; transform:rotate(${Math.random() * 360}deg); opacity:${Math.random() * 0.5 + 0.5};`;
+        overlay.appendChild(txt);
+        setTimeout(() => txt.remove(), 1500);
+      }, 30);
+      setTimeout(() => { clearInterval(window.__trollInt); overlay.remove(); }, 5000);
+    }
+
+    if (action === "flip") {
+      document.body.style.transform = "rotate(180deg)";
+      setTimeout(() => document.body.style.transform = "", 5000);
+    }
+
+    if (action === "alert") alert(t("youBanned"));
+    if (action === "alert") alert("You have been trolled!");
+
+    if (action === "scary_face") {
+      const overlay = document.createElement("div");
+      overlay.id = "af-troll-overlay";
+      overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; display:flex; justify-content:center; align-items:center; background:black;";
+      overlay.innerHTML = '<img src="https://raw.githubusercontent.com/StanleyTheProgrammer/gugugaga/main/scary.jpeg" style="width:100vh; object-fit:cover;">';
+      document.body.appendChild(overlay);
+      setTimeout(() => overlay.remove(), 3000);
+    }
+
+    if (action === "scary_blood") {
+      const overlay = document.createElement("div");
+      overlay.id = "af-troll-overlay";
+      overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; background:rgba(255,0,0,0.8); display:flex; justify-content:center; align-items:center; color:white; font-size:10vw; font-family:serif; font-weight:bold; text-shadow:0 0 20px black;";
+      overlay.textContent = "DON'T LOOK BEHIND YOU";
+      document.body.appendChild(overlay);
+      setTimeout(() => overlay.remove(), 3000);
+    }
+
+    if (action === "scary_invert") {
+      document.body.style.filter = "invert(1) hue-rotate(180deg) contrast(2)";
+      setTimeout(() => document.body.style.filter = "", 3000);
+    }
+
+    if (action === "scary_static") {
+      document.body.style.filter = "contrast(200%) grayscale(100%) brightness(50%)";
+      const overlay = document.createElement("div");
+      overlay.id = "af-troll-overlay";
+      overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; background:url('https://i.gifer.com/7E2x.gif') center/cover; opacity:0.8;";
+      document.body.appendChild(overlay);
+      new Audio("https://www.soundjay.com/misc/sounds/static-1.mp3").play().catch(() => {});
+      setTimeout(() => { overlay.remove(); document.body.style.filter = ""; }, 3000);
+    }
+
+    if (action === "troll_cursor") {
+      const s = document.createElement("style");
+      s.id = "af-troll-cursor";
+      s.textContent = "* { cursor: url('https://cur.cursors-4u.net/cursors/cur-9/cur817.cur'), auto !important; }";
+      document.head.appendChild(s);
+      setTimeout(() => s.remove(), 5000);
+    }
+
+    if (action === "troll_zoom") {
+      document.body.style.transition = "transform 0.1s";
+      let scale = 1;
+      window.__trollInt = setInterval(() => {
+        scale += 0.1;
+        document.body.style.transform = `scale(${scale})`;
+        if (scale > 3) {
+          clearInterval(window.__trollInt);
+          document.body.style.transform = "";
+          document.body.style.transition = "";
+        }
+      }, 100);
+    }
+  }
+
+  async function initAuth() {
+    const style = document.createElement("style");
+    style.textContent = css;
+    document.head.appendChild(style);
+
+    injectLangToggle();
+
+    const { auth, db, authMod, dbMod } = await loadFirebase();
+
+    dbMod.setDoc(dbMod.doc(db, "config", "version"), { current: SCRIPT_VERSION }, { merge: true }).catch(() => {});
+
+    const savedUserRaw = localStorage.getItem("aplus_saved_user");
+    if (savedUserRaw) {
+      try {
+        const saved = JSON.parse(savedUserRaw);
+        await authMod.signInAnonymously(auth);
+        const realUid = auth.currentUser.uid;
+        const resolvedUid = realUid || saved.uid;
+
+        const userSnap = await dbMod.getDoc(dbMod.doc(db, "users", resolvedUid));
+
+        if (userSnap.exists() && userSnap.data().isBanned && saved.username !== ADMIN_USERNAME) {
+          localStorage.removeItem("aplus_saved_user");
+          throw new Error(t("accountBanned"));
+        }
+        if (saved.username === ADMIN_USERNAME && userSnap.exists() && userSnap.data().isBanned) {
+          await dbMod.updateDoc(dbMod.doc(db, "users", resolvedUid), { isBanned: false });
+        }
+
+        startHack(resolvedUid, saved.username, db, dbMod, auth, authMod);
+        return;
+      } catch (e) {
+        console.log("Auto-login failed", e);
+      }
+    }
+
+    const modal = document.createElement("div");
+    modal.id = "af-auth-modal";
+    modal.innerHTML = `
       <div id="af-auth-box">
-        <h2 id="af-auth-title">Welcome back</h2>
-        <div class="sub" id="af-auth-sub">Sign in to continue</div>
+        <h2 id="af-auth-title">${t("authTitleLogin")}</h2>
+        <div class="sub" id="af-auth-sub">${t("authSubLogin")}</div>
         <div id="af-error"></div>
-        <input type="text" id="af-username" placeholder="Username" autocomplete="off">
-        <input type="password" id="af-password" placeholder="Password" maxlength="20">
-        <button id="af-auth-btn">Log in</button>
-        <button id="af-auth-switch">Need an account? Register</button>
-      </div>`,document.body.appendChild(m);let b=!0;document.getElementById("af-auth-switch").onclick=()=>{b=!b,document.getElementById("af-auth-title").textContent=b?"Welcome back":"Create account",document.getElementById("af-auth-sub").textContent=b?"Sign in to continue":"Join the fun",document.getElementById("af-auth-btn").textContent=b?"Log in":"Register",document.getElementById("af-auth-switch").textContent=b?"Need an account? Register":"Already have an account? Log in",document.getElementById("af-error").textContent=""},document.getElementById("af-auth-btn").onclick=async()=>{let e=document.getElementById("af-username").value.trim().toLowerCase(),a=document.getElementById("af-password").value,r=document.getElementById("af-error"),d=document.getElementById("af-auth-btn");if(!e||!a)return r.textContent="Fill all fields.";if(a.length>20)return r.textContent="Password max 20 chars.";d.disabled=!0,r.textContent="Processing...";try{let c=l.doc(n,"usernames",e);if(b){let p=await l.getDoc(c);if(!p.exists())throw Error("Account not found.");let u=p.data();if(u.password!==a)throw Error("Wrong password.");await s.signInAnonymously(o);let f=o.currentUser.uid,g=await l.getDoc(l.doc(n,"users",u.uid));if(g.exists()&&g.data().isBanned&&e!==t)throw await s.signOut(o),Error("This account is BANNED.");f!==u.uid&&await l.updateDoc(c,{uid:f});let v=f||u.uid;localStorage.setItem("aplus_saved_user",JSON.stringify({uid:v,username:e})),m.remove(),i(v,e,n,l,o,s)}else{let x=localStorage.getItem("aplus_device_id");x||(x=crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2),localStorage.setItem("aplus_device_id",x));let h=l.doc(n,"devices",x),$=await l.getDoc(h);if($.exists())throw Error("This device is already registered.");let y=await l.getDoc(c);if(y.exists())throw Error("Username taken.");let _=await s.signInAnonymously(o),w=_.user.uid;await l.setDoc(c,{uid:w,password:a}),await l.setDoc(h,{uid:w}),await l.setDoc(l.doc(n,"users",w),{username:e,isBanned:!1,isMod:!1,createdAt:Date.now(),lastSeen:Date.now(),autoStats:0,showStats:0}),localStorage.setItem("aplus_saved_user",JSON.stringify({uid:w,username:e})),m.remove(),i(w,e,n,l,o,s)}}catch(k){r.textContent=k.message}finally{d.disabled=!1}}}function i(e,a,r,n,i,l){console.log(`[auth] Logged in as ${a}`);let d=i.currentUser?i.currentUser.uid:null;d&&d!==e&&(console.warn("[auth] uid mismatch — saved:",e,"real:",d,"→ resyncing"),e=d,localStorage.setItem("aplus_saved_user",JSON.stringify({uid:d,username:a})),n.updateDoc(n.doc(r,"usernames",a),{uid:d}).then(()=>console.log("[auth] usernames/"+a+" uid resynced to "+d)).catch(e=>console.warn("[auth] usernames uid resync failed:",e.code,e.message))),n.updateDoc(n.doc(r,"users",e),{lastSeen:Date.now()}).catch(()=>{});let c=Math.random().toString(36).slice(2)+Date.now().toString(36);n.updateDoc(n.doc(r,"users",e),{activeSessionId:c}).catch(()=>{});let p=n.onSnapshot(n.doc(r,"users",e),e=>{if(e.exists()){let t=e.data();t.activeSessionId&&t.activeSessionId!==c&&(p(),localStorage.removeItem("aplus_saved_user"),alert("Session expired: You logged in from another device."),l.signOut(i).finally(()=>location.reload()))}});n.onSnapshot(n.doc(r,"config","version"),e=>{e.exists()&&e.data().current>5&&(console.log("[version] Script is outdated. Refreshing..."),location.reload())}),window.__afLcWatch&&clearInterval(window.__afLcWatch),window.__afLcWatch=setInterval(()=>{localStorage.getItem("aplus_saved_user")||(clearInterval(window.__afLcWatch),l.signOut(i).finally(()=>location.reload()))},2e3);let u=!1;setInterval(async()=>{try{await n.updateDoc(n.doc(r,"users",e),{lastSeen:Date.now()})}catch(t){}},15e3),setInterval(async()=>{try{let o=await n.getDoc(n.doc(r,"users",e));if(o.exists()){let s=o.data();u=s.isMod,s.isBanned&&(a===t?await n.updateDoc(n.doc(r,"users",e),{isBanned:!1}):(alert("You have been BANNED."),localStorage.removeItem("aplus_saved_user"),await l.signOut(i),location.reload()))}}catch(d){}},3e3);let f=parseInt(localStorage.getItem("af_last_troll_ts"))||0,g;try{g=new BroadcastChannel("af_troll_sync")}catch(m){}n.getDoc(n.doc(r,"commands",e)).then(e=>{if(!e.exists())return;let t=e.data();t.timestamp&&t.timestamp>f&&(f=t.timestamp,localStorage.setItem("af_last_troll_ts",f),g&&g.postMessage({ts:f}),o(t.action))}).catch(()=>{}),setInterval(async()=>{try{let t=await n.getDoc(n.doc(r,"commands",e));if(t.exists()){let a=t.data();a.timestamp&&a.timestamp>f&&(f=a.timestamp,localStorage.setItem("af_last_troll_ts",f),g&&g.postMessage({ts:f}),o(a.action))}}catch(i){}},2e3),g&&(g.onmessage=e=>{e.data.ts>f&&(f=e.data.ts,localStorage.setItem("af_last_troll_ts",f))}),function e(t,a,r,o,n,i){if(document.getElementById("af-root"))return;let l=document.createElement("div");l.id="af-root",l.innerHTML=`
-      <div class="bar" id="af-bar"><span>Autofill</span><b id="af-x">&times;</b></div>
+        <input type="text" id="af-username" placeholder="${t("authUsername")}" autocomplete="off">
+        <input type="password" id="af-password" placeholder="${t("authPassword")}" maxlength="20">
+        <button id="af-auth-btn">${t("authLogin")}</button>
+        <button id="af-auth-switch">${t("authSwitchToRegister")}</button>
+      </div>`;
+    document.body.appendChild(modal);
+
+    let isLogin = true;
+    document.getElementById("af-auth-switch").onclick = () => {
+      isLogin = !isLogin;
+      document.getElementById("af-auth-title").textContent = isLogin ? t("authTitleLogin") : t("authTitleRegister");
+      document.getElementById("af-auth-sub").textContent = isLogin ? t("authSubLogin") : t("authSubRegister");
+      document.getElementById("af-auth-btn").textContent = isLogin ? t("authLogin") : t("authRegister");
+      document.getElementById("af-auth-switch").textContent = isLogin ? t("authSwitchToRegister") : t("authSwitchToLogin");
+      document.getElementById("af-error").textContent = "";
+    };
+
+    document.getElementById("af-auth-btn").onclick = async () => {
+      const u = document.getElementById("af-username").value.trim().toLowerCase();
+      const p = document.getElementById("af-password").value;
+      const errDiv = document.getElementById("af-error");
+      const btn = document.getElementById("af-auth-btn");
+
+      if (!u || !p) return errDiv.textContent = t("authFillFields");
+      if (p.length > 20) return errDiv.textContent = t("authPasswordMax");
+      btn.disabled = true;
+      errDiv.textContent = t("authProcessing");
+
+      try {
+        const usernameRef = dbMod.doc(db, "usernames", u);
+
+        if (isLogin) {
+          const snap = await dbMod.getDoc(usernameRef);
+          if (!snap.exists()) throw new Error(t("authAccountNotFound"));
+          const data = snap.data();
+          if (data.password !== p) throw new Error(t("authWrongPassword"));
+
+          await authMod.signInAnonymously(auth);
+          const realUid = auth.currentUser.uid;
+
+          const userSnap = await dbMod.getDoc(dbMod.doc(db, "users", data.uid));
+          if (userSnap.exists() && userSnap.data().isBanned && u !== ADMIN_USERNAME) {
+            await authMod.signOut(auth);
+            throw new Error(t("authBanned"));
+          }
+          if (realUid !== data.uid) {
+            await dbMod.updateDoc(usernameRef, { uid: realUid });
+          }
+
+          const finalUid = realUid || data.uid;
+          localStorage.setItem("aplus_saved_user", JSON.stringify({ uid: finalUid, username: u }));
+          modal.remove();
+          startHack(finalUid, u, db, dbMod, auth, authMod);
+
+        } else {
+          let deviceId = localStorage.getItem("aplus_device_id");
+          if (!deviceId) {
+            deviceId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+            localStorage.setItem("aplus_device_id", deviceId);
+          }
+          const deviceRef = dbMod.doc(db, "devices", deviceId);
+          const dSnap = await dbMod.getDoc(deviceRef);
+          if (dSnap.exists()) throw new Error(t("authDeviceRegistered"));
+
+          const uSnap = await dbMod.getDoc(usernameRef);
+          if (uSnap.exists()) throw new Error(t("authUsernameTaken"));
+
+          const cred = await authMod.signInAnonymously(auth);
+          const uid = cred.user.uid;
+
+          await dbMod.setDoc(usernameRef, { uid, password: p });
+          await dbMod.setDoc(deviceRef, { uid });
+          await dbMod.setDoc(dbMod.doc(db, "users", uid), {
+            username: u, isBanned: false, isMod: false,
+            createdAt: Date.now(), lastSeen: Date.now(),
+            autoStats: 0, showStats: 0
+          });
+
+          localStorage.setItem("aplus_saved_user", JSON.stringify({ uid, username: u }));
+          modal.remove();
+          startHack(uid, u, db, dbMod, auth, authMod);
+        }
+      } catch (e) {
+        errDiv.textContent = e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  }
+
+  function startHack(uid, username, db, dbMod, auth, authMod) {
+    console.log(`[auth] Logged in as ${username}`);
+
+    const realUid = auth.currentUser ? auth.currentUser.uid : null;
+    if (realUid && realUid !== uid) {
+      console.warn("[auth] uid mismatch — saved:", uid, "real:", realUid, "→ resyncing");
+      uid = realUid;
+      localStorage.setItem("aplus_saved_user", JSON.stringify({ uid: realUid, username }));
+      dbMod.updateDoc(dbMod.doc(db, "usernames", username), { uid: realUid })
+        .then(() => console.log("[auth] usernames/" + username + " uid resynced to " + realUid))
+        .catch(e => console.warn("[auth] usernames uid resync failed:", e.code, e.message));
+    }
+
+    dbMod.updateDoc(dbMod.doc(db, "users", uid), { lastSeen: Date.now() }).catch(() => {});
+
+    const sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    dbMod.updateDoc(dbMod.doc(db, "users", uid), { activeSessionId: sessionId }).catch(() => {});
+
+    const sessionListener = dbMod.onSnapshot(dbMod.doc(db, "users", uid), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.activeSessionId && data.activeSessionId !== sessionId) {
+          sessionListener();
+          localStorage.removeItem("aplus_saved_user");
+          alert(t("sessionExpired"));
+          authMod.signOut(auth).finally(() => location.reload());
+        }
+      }
+    });
+
+    dbMod.onSnapshot(dbMod.doc(db, "config", "version"), (snap) => {
+      if (snap.exists() && snap.data().current > SCRIPT_VERSION) {
+        console.log("[version] Script is outdated. Refreshing...");
+        location.reload();
+      }
+    });
+
+    if (window.__afLcWatch) clearInterval(window.__afLcWatch);
+    window.__afLcWatch = setInterval(() => {
+      if (!localStorage.getItem("aplus_saved_user")) {
+        clearInterval(window.__afLcWatch);
+        authMod.signOut(auth).finally(() => location.reload());
+      }
+    }, 2000);
+
+    let isMod = false;
+
+    setInterval(async () => {
+      try { await dbMod.updateDoc(dbMod.doc(db, "users", uid), { lastSeen: Date.now() }); } catch (e) {}
+    }, 15000);
+
+    setInterval(async () => {
+      try {
+        const snap = await dbMod.getDoc(dbMod.doc(db, "users", uid));
+        if (snap.exists()) {
+          const data = snap.data();
+          isMod = data.isMod;
+          if (data.isBanned) {
+            if (username === ADMIN_USERNAME) {
+              await dbMod.updateDoc(dbMod.doc(db, "users", uid), { isBanned: false });
+            } else {
+              alert(t("youBanned"));
+              localStorage.removeItem("aplus_saved_user");
+              await authMod.signOut(auth);
+              location.reload();
+            }
+          }
+        }
+      } catch (e) {}
+    }, 3000);
+
+    let lastTimestamp = parseInt(localStorage.getItem('af_last_troll_ts')) || 0;
+
+    let bc;
+    try { bc = new BroadcastChannel('af_troll_sync'); } catch(e) {}
+
+    dbMod.getDoc(dbMod.doc(db, "commands", uid)).then(snap => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      if (data.timestamp && data.timestamp > lastTimestamp) {
+        lastTimestamp = data.timestamp;
+        localStorage.setItem('af_last_troll_ts', lastTimestamp);
+        if (bc) bc.postMessage({ ts: lastTimestamp });
+        triggerTroll(data.action);
+      }
+    }).catch(() => {});
+
+    setInterval(async () => {
+      try {
+        const s = await dbMod.getDoc(dbMod.doc(db, "commands", uid));
+        if (s.exists()) {
+          const data = s.data();
+          if (data.timestamp && data.timestamp > lastTimestamp) {
+            lastTimestamp = data.timestamp;
+            localStorage.setItem('af_last_troll_ts', lastTimestamp);
+            if (bc) bc.postMessage({ ts: lastTimestamp });
+            triggerTroll(data.action);
+          }
+        }
+      } catch(e) {}
+    }, 2000);
+
+    if (bc) {
+      bc.onmessage = (e) => {
+        if (e.data.ts > lastTimestamp) {
+          lastTimestamp = e.data.ts;
+          localStorage.setItem('af_last_troll_ts', lastTimestamp);
+        }
+      };
+    }
+
+    injectAplusGUI(uid, username, db, dbMod, () => {}, () => {});
+    injectVideoScrubber();
+    injectChatPanel(uid, username, db, dbMod);
+
+    if (username === ADMIN_USERNAME || isMod) {
+      injectAdminPanel(db, dbMod, username);
+    }
+  }
+
+  function injectVideoScrubber() {
+    if (document.getElementById("af-video-scrubber")) return;
+
+    const panel = document.createElement("div");
+    panel.id = "af-video-scrubber";
+    panel.innerHTML = `
+      <div class="title">
+        <span>${t("videoTitle")}</span>
+        <span class="time" id="af-vs-time">0:00 / 0:00</span>
+      </div>
+      <input type="range" id="af-vs-slider" min="0" max="1" step="0.1" value="0">
+    `;
+    document.body.appendChild(panel);
+
+    const slider = panel.querySelector("#af-vs-slider");
+    const timeEl = panel.querySelector("#af-vs-time");
+
+    let currentVideo = null;
+    let lastSeekRetry = 0;
+    let autoSkipDone = false;
+
+    function fmt(sec) {
+      if (!isFinite(sec)) return "0:00";
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return m + ":" + (s < 10 ? "0" + s : s);
+    }
+
+    function unblockSeek(video) {
+      video.controls = true;
+      video.removeAttribute("disablepictureinpicture");
+      video.removeAttribute("controlslist");
+
+      if (!isFinite(video.duration) || video.duration === 0) {
+        try {
+          Object.defineProperty(video, "duration", {
+            configurable: true,
+            get() { return this.buffered.length ? this.buffered.end(this.buffered.length - 1) : 0; }
+          });
+        } catch(e) {}
+      }
+
+      video.addEventListener("seeking", () => {
+        if (currentVideo && currentVideo.__afTargetTime != null) {
+          const target = currentVideo.__afTargetTime;
+          if (Math.abs(video.currentTime - target) > 0.5) {
+            video.currentTime = target;
+          }
+        }
+      }, true);
+    }
+
+    function seekTo(video, time) {
+      if (!video) return;
+      const target = Math.max(0, Math.min(time, video.duration || 0));
+      video.__afTargetTime = target;
+      lastSeekRetry = Date.now();
+      try { video.currentTime = target; } catch(e) {}
+
+      const retry = setInterval(() => {
+        if (Date.now() - lastSeekRetry > 3000) { clearInterval(retry); return; }
+        if (Math.abs(video.currentTime - target) > 0.5) {
+          try { video.currentTime = target; } catch(e) {}
+        } else {
+          clearInterval(retry);
+        }
+      }, 200);
+    }
+
+    function autoSkipIfNeeded(video) {
+      if (localStorage.getItem("af_autoskip_video") === "0") return;
+      if (autoSkipDone) return;
+      if (!isFinite(video.duration) || video.duration <= 0) return;
+      autoSkipDone = true;
+      const target = Math.max(0, video.duration - 0.5);
+      seekTo(video, target);
+      setTimeout(() => {
+        if (video.paused) video.play().catch(()=>{});
+        autoClickContinue();
+      }, 300);
+    }
+
+    function autoClickContinue() {
+      if (localStorage.getItem("af_autoclick_continue") === "0") return;
+      const btn = document.querySelector('.btn_box .ael_btn_green');
+      if (btn && btn.textContent.includes('前往練習')) {
+        console.log('[autofill] auto-clicking 前往練習');
+        btn.click();
+      }
+    }
+
+    function bindVideo(video) {
+      if (!video || video === currentVideo) return;
+      currentVideo = video;
+      autoSkipDone = false;
+      unblockSeek(video);
+      panel.classList.add("visible");
+
+      const updateUI = () => {
+        const d = video.duration || 0;
+        slider.max = d || 1;
+        slider.value = video.currentTime || 0;
+        timeEl.textContent = fmt(video.currentTime) + " / " + fmt(d);
+      };
+
+      video.addEventListener("timeupdate", updateUI);
+      video.addEventListener("loadedmetadata", updateUI);
+      video.addEventListener("durationchange", updateUI);
+
+      video.addEventListener("ended", autoClickContinue);
+
+      const tryAutoSkip = () => {
+        if (isFinite(video.duration) && video.duration > 0) {
+          autoSkipIfNeeded(video);
+        }
+      };
+
+      video.addEventListener("loadedmetadata", tryAutoSkip);
+      video.addEventListener("canplay", tryAutoSkip);
+      video.addEventListener("durationchange", tryAutoSkip);
+
+      updateUI();
+      tryAutoSkip();
+    }
+
+    slider.addEventListener("input", () => {
+      if (currentVideo) seekTo(currentVideo, parseFloat(slider.value));
+    });
+
+    function findVideo() {
+      return (
+        document.querySelector("div.video_box > video") ||
+        document.querySelector("div.ael_video video") ||
+        document.querySelector("div.current_video_box video") ||
+        document.querySelector("video")
+      );
+    }
+
+    const checkVideo = () => {
+      const v = findVideo();
+      if (v && v !== currentVideo) bindVideo(v);
+      else if (!v && currentVideo) {
+        panel.classList.remove("visible");
+        currentVideo = null;
+        autoSkipDone = false;
+      }
+    };
+
+    const observer = new MutationObserver(checkVideo);
+    observer.observe(document.body, { childList: true, subtree: true });
+    setInterval(checkVideo, 1000);
+    checkVideo();
+  }
+
+  function injectAplusGUI(uid, username, db, dbMod, onAuto, onShow) {
+    if (document.getElementById("af-root")) return;
+
+    const root = document.createElement("div");
+    root.id = "af-root";
+    root.innerHTML = `
+      <div class="bar" id="af-bar"><span>${t("panelTitle")}</span><b id="af-x">&times;</b></div>
       <div class="body">
-        <div class="row"><span class="label">Auto</span><div class="toggle" id="af-toggle"><div class="knob"></div></div></div>
+        <div class="row"><span class="label">${t("panelAuto")}</span><div class="toggle" id="af-toggle"><div class="knob"></div></div></div>
         <div class="sliderBlock">
-          <div class="sliderHead"><span class="label">Speed</span><span class="sliderVal" id="af-speed-val">900ms</span></div>
+          <div class="sliderHead"><span class="label">${t("panelSpeed")}</span><span class="sliderVal" id="af-speed-val">900ms</span></div>
           <div class="sliderRow"><input type="range" id="af-speed" min="200" max="3000" step="50" value="900"></div>
         </div>
         <div class="sliderBlock">
-          <div class="sliderHead"><span class="label">Correct</span><span class="sliderVal" id="af-val">85%</span></div>
+          <div class="sliderHead"><span class="label">${t("panelCorrect")}</span><span class="sliderVal" id="af-val">85%</span></div>
           <div class="sliderRow"><input type="range" id="af-slider" min="50" max="100" step="1" value="85"></div>
         </div>
-        <button class="act" id="af-show">Show answer</button>
-        <button class="act" id="af-profile-btn">Profile Search</button>
-        <button class="act" id="af-logout" style="background:var(--danger); color:#fff;">Log Out</button>
+        <button class="act" id="af-show">${t("panelShowAnswer")}</button>
+        <button class="act" id="af-profile-btn">${t("panelProfile")}</button>
+        <button class="act" id="af-logout" style="background:var(--danger); color:#fff;">${t("panelLogout")}</button>
         <div class="out" id="af-out"></div>
-      </div>`,document.body.appendChild(l);let d=document.getElementById("af-bar"),c=document.getElementById("af-toggle"),p=document.getElementById("af-slider"),u=document.getElementById("af-val"),f=document.getElementById("af-speed"),g=document.getElementById("af-speed-val"),m=document.getElementById("af-x"),b=document.getElementById("af-show"),v=document.getElementById("af-profile-btn"),x=document.getElementById("af-logout"),h=document.getElementById("af-out"),$=!1,y=0,_=0,w=!1,k=85,E=900,C=null,I=!1;function L(e,t,a){return t=t||1e3,a=a||50,new Promise(r=>{let o=Date.now();!function n(){let i;try{i=e()}catch(s){i=null}return i?r(i):Date.now()-o>=t?r(null):void setTimeout(n,a)}()})}function B(){try{let e=document.getElementById("app");if(!e||!e.__vue__)return null;return function e(t,a){if(!t||"object"!=typeof t||a>15||t.__ob__)return null;if(t.currentQuestion&&t.currentQuestion.childQuestions||t.currentQuestion&&t.currentQuestion.questionId)return t.currentQuestion;if(t.childQuestions&&Array.isArray(t.childQuestions))return t;if(t.$data)for(let r in t.$data){let o=t.$data[r];if(o&&"object"==typeof o){let n=e(o,a+1);if(n)return n}}if(t.$children)for(let i of t.$children){let s=e(i,a+1);if(s)return s}return null}(e.__vue__,0)}catch(t){return null}}function S(e){return String(e).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}function z(e){if(/^-?\d+(\.\d+)?$/.test(e)){let t=parseFloat(e);return String(t+(.5>Math.random()?-1:1)*(1+Math.floor(5*Math.random())))}return e}async function A(e,t){let a=document.querySelector(".practice_base_topic_card")||document,r=a.querySelectorAll(".select_component");if(!r.length)return 0;let o=(e.childQuestions||[]).filter(e=>e.questionAnswer),n=0;for(let i=0;i<r.length;i++){let s=r[i],l=o[i];if(!l)continue;let d=String(Array.isArray(l.questionAnswer)?l.questionAnswer[0]:l.questionAnswer).trim().toUpperCase();if(t&&l.options&&l.options.length>1){let c=l.options.map(e=>e.optionNo).filter(e=>e!==d);c.length&&(d=c[Math.floor(Math.random()*c.length)])}let p=null;if(l.options&&Array.isArray(l.options)){let u=l.options.find(e=>e.optionNo===d);u&&(p=String(u.optionContent).trim())}if(!p)continue;let f=s.querySelectorAll(".options_box li");if(0===f.length){let g=s.__vue__;if(g&&g.$data&&"flag"in g.$data)g.$data.flag=!0,g.$forceUpdate&&g.$forceUpdate();else{let m=s.querySelector(".select_box");m&&m.click()}f=await L(()=>{let e=s.querySelectorAll(".options_box li");return e.length?e:null},1500,60)}if(!f||!f.length)continue;let b=null;for(let v of f)if(v.textContent.trim()===p){b=v;break}if(!b){let x=p.replace(/\s+/g,"");for(let h of f)if(h.textContent.replace(/\s+/g,"")===x){b=h;break}}b&&(b.click(),n++,await new Promise(e=>setTimeout(e,100)))}return n}async function T(){if(w&&!I){I=!0;try{var e;let a=B();if(!a)return;let i=(e=a)?e.questionId?e.questionId:e.childQuestions?JSON.stringify(e.childQuestions.map(e=>e.questionAnswer)):null:null;if(!i||i===C)return;C=i,document.querySelectorAll('[data-autofilled="1"]').forEach(e=>{e.removeAttribute("data-autofilled"),e.style.outline=""});let s=!(100*Math.random()<k);if(function e(t,a){let r=document.querySelector(".practice_base_topic_card")||document,o=r.querySelectorAll("textarea.ant-input");if(!o.length)return 0;let n=(t.childQuestions||[]).filter(e=>e.questionAnswer),i=0;for(let s=0;s<o.length;s++){let l=o[s],d=n[s];if(!d)break;let c=d.questionAnswer;Array.isArray(c)&&(c=c[0]),"string"!=typeof c&&(c=String(c)),a&&(c=z(c)),l.value!==c&&(l.focus(),l.value=c,l.dispatchEvent(new Event("input",{bubbles:!0})),l.dispatchEvent(new Event("change",{bubbles:!0})),l.blur(),l.style.outline="2px solid "+(a?"var(--danger)":"var(--success)"),i++)}return i}(a,s),function e(t,a){let r=document.querySelector(".practice_base_topic_card")||document,o=r.querySelectorAll("ul.TEXT, ul.MATH, ul.CHINESE, ul.ENGLISH");if(!o.length)return 0;let n=(t.childQuestions||[]).filter(e=>e.questionAnswer).map(e=>{let t=e.questionAnswer;return Array.isArray(t)&&(t=t.join(";")),{raw:String(t),child:e}}),i=0;for(let s=0;s<o.length;s++){let l=o[s];if(l.classList.contains("options_box")||l.closest(".select_component"))continue;let d=l.querySelectorAll('li[class*="optionNumOneRaw"]');if(!d.length)continue;let c=n[s]||n[n.length-1];if(!c)continue;let p=[],u=[],f=c.raw;f&&(/[;|,]/.test(f)?f.split(/[;|,]/).forEach(e=>{let t=e.trim().toUpperCase();t&&p.push(t)}):/^\s*[A-Z]\s*$/.test(f)?p.push(f.trim().toUpperCase()):/^[A-Z]{2,}$/.test(f.trim())?f.trim().toUpperCase().split("").forEach(e=>p.push(e)):u.push(f)),!p.length&&!u.length&&c.child&&c.child.options&&c.child.options.forEach(e=>{(e.correct||e.isCorrect)&&(e.optionNo?p.push(String(e.optionNo).toUpperCase()):e.optionContent&&u.push(String(e.optionContent).trim()))});let g=["A","B","C","D","E","F","G","H"],m=[];p.forEach(e=>{let t=g.indexOf(e.toUpperCase());t>=0&&m.push(t)});let b=[];if(a){let v=[];for(let x=0;x<d.length;x++)m.includes(x)||v.push(x);let h=Math.max(1,m.length);for(let $=0;$<h&&v.length;$++){let y=Math.floor(Math.random()*v.length);b.push(v[y]),v.splice(y,1)}}if(!a)for(let _ of p){let w=_.toUpperCase(),k=null;for(let E of d){let C=E.querySelector(".label span");if(C&&C.textContent.replace(/\s|&nbsp;/g,"")===w+"."){k=E;break}}if(!k){let I=w.charCodeAt(0)-65;I>=0&&I<d.length&&(k=d[I])}k&&"1"!==k.dataset.autofilled&&(k.click(),k.dataset.autofilled="1",k.style.outline="2px solid var(--success)",i++)}for(let L of b){let B=d[L];B&&"1"!==B.dataset.autofilled&&(B.click(),B.dataset.autofilled="1",B.style.outline="2px solid var(--danger)",i++)}if(!a)for(let S of u)for(let z of d){let A=z.querySelector(".con span")||z.querySelector(".con");if(A&&(A.textContent.trim()===S||A.textContent.trim().includes(S)||S.includes(A.textContent.trim()))){if("1"===z.dataset.autofilled)break;z.click(),z.dataset.autofilled="1",z.style.outline="2px solid var(--success)",i++;break}}}return i}(a,s),await A(a,s),n&&n(),o.updateDoc(o.doc(r,"users",t),{autoStats:o.increment(1)}).catch(()=>{}),await new Promise(e=>setTimeout(e,E)),!w)return;let l=function e(){let t=document.querySelector(".practice_base_topic_card")||document,a=t.querySelectorAll(".ael_btn");for(let r of a)if(r.textContent.includes("下一題")||r.textContent.includes("下一题"))return r;let o=document.querySelectorAll('.ael_btn, button, [role="button"]');for(let n of o)if(n.textContent&&n.textContent.includes("下一題"))return n;return null}();l&&l.click()}finally{I=!1}}}d.addEventListener("pointerdown",e=>{if("af-x"===e.target.id)return;e.preventDefault(),$=!0,y=e.clientX,_=e.clientY;let t=l.getBoundingClientRect();l.style.right="auto",l.style.bottom="auto",l.style.left=t.left+"px",l.style.top=t.top+"px";try{d.setPointerCapture(e.pointerId)}catch(a){}}),d.addEventListener("pointermove",e=>{if(!$)return;e.preventDefault();let t=e.clientX-y,a=e.clientY-_,r=l.getBoundingClientRect(),o=r.left+t,n=r.top+a;o=Math.max(0,Math.min(window.innerWidth-l.offsetWidth,o)),n=Math.max(0,Math.min(window.innerHeight-l.offsetHeight,n)),l.style.left=o+"px",l.style.top=n+"px",y=e.clientX,_=e.clientY}),d.addEventListener("pointerup",()=>$=!1),d.addEventListener("pointercancel",()=>$=!1),x.onclick=()=>{localStorage.removeItem("aplus_saved_user"),location.reload()},v.onclick=()=>s(t,r,o),b.addEventListener("click",async()=>{let e=B();if(!e||!e.childQuestions||!e.childQuestions.length){h.innerHTML='<div class="lbl">Result</div><div class="err">No question found.</div>',h.classList.add("show");return}let a=e.childQuestions.filter(e=>e.questionAnswer);if(!a.length){h.innerHTML='<div class="lbl">Result</div><div class="err">No answer found.</div>',h.classList.add("show");return}let n='<div class="lbl">Answer</div>';a.forEach(e=>{n+='<div class="ans-row">',a.length>1&&(n+='<span class="ans-q">Q'+e.questionNo+"</span>"),n+='<span class="val">'+function e(t){Array.isArray(t)&&(t=t.join(" ; ")),t=String(t);let a=/\$\$\s*\\+frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}\s*\$\$/g,r=[],o=0,n,i=!1;for(;null!==(n=a.exec(t));)i=!0,r.push(S(t.slice(o,n.index))),r.push('<span class="frac"><span class="num">'+S(n[1])+'</span><span class="den">'+S(n[2])+"</span></span>"),o=a.lastIndex;return i?(r.push(S(t.slice(o))),r.join("")):S(t)}(e.questionAnswer)+"</span></div>"}),h.innerHTML=n,h.classList.add("show"),i&&i(),o.updateDoc(o.doc(r,"users",t),{showStats:o.increment(1)}).catch(()=>{})}),c.addEventListener("click",()=>{w=!w,c.classList.toggle("active",w)}),p.addEventListener("input",()=>{k=parseInt(p.value,10),u.textContent=k+"%"}),f.addEventListener("input",()=>{E=parseInt(f.value,10),g.textContent=E+"ms"}),m.addEventListener("click",()=>l.remove()),setInterval(T,800)}(e,a,r,n,()=>{},()=>{}),function e(){if(document.getElementById("af-video-scrubber"))return;let t=document.createElement("div");t.id="af-video-scrubber",t.innerHTML=`
-      <div class="title">
-        <span>Video Scrubber</span>
-        <span class="time" id="af-vs-time">0:00 / 0:00</span>
-      </div>
-      <div class="autoskip-row">
-        <div class="autoskip-label">Auto-skip videos</div>
-        <div class="autoskip-toggle" id="af-vs-autoskip"><div class="knob"></div></div>
-      </div>
-      <input type="range" id="af-vs-slider" min="0" max="1" step="0.1" value="0">
-      <div class="row">
-        <button id="af-vs-back30">-30s</button>
-        <button id="af-vs-back10">-10s</button>
-        <button id="af-vs-play" class="primary">Play/Pause</button>
-        <button id="af-vs-fwd10">+10s</button>
-        <button id="af-vs-fwd30">+30s</button>
-        <button id="af-vs-end" class="danger">Jump End</button>
-      </div>
-      <div class="status" id="af-vs-status"></div>
-    `,document.body.appendChild(t);let a=t.querySelector("#af-vs-slider"),r=t.querySelector("#af-vs-time"),o=t.querySelector("#af-vs-status"),n=t.querySelector("#af-vs-autoskip"),i="0"!==localStorage.getItem("af_autoskip_video");i&&n.classList.add("active"),n.onclick=()=>{i=!i,n.classList.toggle("active",i),localStorage.setItem("af_autoskip_video",i?"1":"0")};let s=null,l=0,d=!1;function c(e){if(!isFinite(e))return"0:00";let t=Math.floor(e%60);return Math.floor(e/60)+":"+(t<10?"0"+t:t)}function p(e,t){if(!e)return;let a=Math.max(0,Math.min(t,e.duration||0));e.__afTargetTime=a,l=Date.now();try{e.currentTime=a}catch(r){}let o=setInterval(()=>{if(Date.now()-l>3e3){clearInterval(o);return}if(Math.abs(e.currentTime-a)>.5)try{e.currentTime=a}catch(t){}else clearInterval(o)},200)}a.addEventListener("input",()=>{s&&p(s,parseFloat(a.value))});let u=()=>{let e=document.querySelector("div.video_box > video")||document.querySelector("div.ael_video video")||document.querySelector("div.current_video_box video")||document.querySelector("video");e&&e!==s?function e(n){if(!n||n===s)return;s=n,d=!1,function e(t){if(t.controls=!0,t.removeAttribute("disablepictureinpicture"),t.removeAttribute("controlslist"),!isFinite(t.duration)||0===t.duration)try{Object.defineProperty(t,"duration",{configurable:!0,get(){return this.buffered.length?this.buffered.end(this.buffered.length-1):0}})}catch(a){}t.addEventListener("seeking",()=>{if(s&&null!=s.__afTargetTime){let e=s.__afTargetTime;Math.abs(t.currentTime-e)>.5&&(t.currentTime=e)}},!0)}(n),t.classList.add("visible");let l=()=>{let e=n.duration||0;a.max=e||1,a.value=n.currentTime||0,r.textContent=c(n.currentTime)+" / "+c(e)};n.addEventListener("timeupdate",l),n.addEventListener("loadedmetadata",l),n.addEventListener("durationchange",l);let u=()=>{isFinite(n.duration)&&n.duration>0&&function e(t){if(!i||d||!isFinite(t.duration)||t.duration<=0)return;d=!0;let a=Math.max(0,t.duration-.5);o.className="status ok",o.textContent="Auto-skipping to "+c(a)+"…",p(t,a),setTimeout(()=>{t.paused&&t.play().catch(()=>{})},300)}(n)};n.addEventListener("loadedmetadata",u),n.addEventListener("canplay",u),n.addEventListener("durationchange",u),l(),u(),n.src?(o.className="status ok",o.textContent="✓ Scrub enabled. Duration: "+c(n.duration)):(o.className="status err",o.textContent="Video has no src yet.")}(e):!e&&s&&(t.classList.remove("visible"),s=null,d=!1)},f=new MutationObserver(u);f.observe(document.body,{childList:!0,subtree:!0}),setInterval(u,1e3),u(),t.querySelector("#af-vs-back30").onclick=()=>s&&p(s,s.currentTime-30),t.querySelector("#af-vs-back10").onclick=()=>s&&p(s,s.currentTime-10),t.querySelector("#af-vs-fwd10").onclick=()=>s&&p(s,s.currentTime+10),t.querySelector("#af-vs-fwd30").onclick=()=>s&&p(s,s.currentTime+30),t.querySelector("#af-vs-end").onclick=()=>{if(s){if(!isFinite(s.duration)){o.className="status err",o.textContent="Duration unknown. Wait for video to load.";return}p(s,s.duration-.5)}},t.querySelector("#af-vs-play").onclick=()=>{s&&(s.paused?s.play().catch(()=>{}):s.pause())}}(),function e(a,r,o,n){if(document.getElementById("af-chat-fab"))return;let i=document.createElement("button");i.className="af-fab chat",i.id="af-chat-fab",i.textContent="Chat";let s=!1,l=0,d=0,c=!1;i.addEventListener("pointerdown",e=>{s=!0,c=!1,l=e.clientX-i.getBoundingClientRect().left,d=e.clientY-i.getBoundingClientRect().top;try{i.setPointerCapture(e.pointerId)}catch(t){}}),i.addEventListener("pointermove",e=>{s&&(c=!0,i.style.left=e.clientX-l+"px",i.style.top=e.clientY-d+"px")}),i.addEventListener("pointerup",()=>s=!1),i.addEventListener("pointercancel",()=>s=!1),document.body.appendChild(i),i.onclick=async()=>{if(c)return;let e=document.getElementById("af-chat-panel");if(e){e.remove();return}let i=document.createElement("div");i.id="af-chat-panel",i.innerHTML=`
-        <div id="af-chat-header"><h2>Chat</h2><button id="af-chat-close">&times;</button></div>
+      </div>`;
+    document.body.appendChild(root);
+
+    const bar = document.getElementById("af-bar");
+    const toggle = document.getElementById("af-toggle");
+    const slider = document.getElementById("af-slider");
+    const sliderVal = document.getElementById("af-val");
+    const speedSlider = document.getElementById("af-speed");
+    const speedVal = document.getElementById("af-speed-val");
+    const closeBtn = document.getElementById("af-x");
+    const showBtn = document.getElementById("af-show");
+    const profileBtn = document.getElementById("af-profile-btn");
+    const logoutBtn = document.getElementById("af-logout");
+    const outEl = document.getElementById("af-out");
+
+    let drag = false, ox = 0, oy = 0;
+    let autoEnabled = false;
+    let correctChance = 85;
+    let advanceDelay = 900;
+    let lastKey = null;
+    let busy = false;
+
+    bar.addEventListener("pointerdown", e => {
+      if (e.target.id === "af-x") return;
+      e.preventDefault();
+      drag = true; ox = e.clientX; oy = e.clientY;
+      const r = root.getBoundingClientRect();
+      root.style.right = "auto"; root.style.bottom = "auto";
+      root.style.left = r.left + "px"; root.style.top = r.top + "px";
+      try { bar.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    bar.addEventListener("pointermove", e => {
+      if (!drag) return;
+      e.preventDefault();
+      const dx = e.clientX - ox, dy = e.clientY - oy;
+      const r = root.getBoundingClientRect();
+      let nx = r.left + dx, ny = r.top + dy;
+      nx = Math.max(0, Math.min(window.innerWidth - root.offsetWidth, nx));
+      ny = Math.max(0, Math.min(window.innerHeight - root.offsetHeight, ny));
+      root.style.left = nx + "px"; root.style.top = ny + "px";
+      ox = e.clientX; oy = e.clientY;
+    });
+    bar.addEventListener("pointerup", () => drag = false);
+    bar.addEventListener("pointercancel", () => drag = false);
+
+    logoutBtn.onclick = () => {
+      localStorage.removeItem("aplus_saved_user");
+      location.reload();
+    };
+    profileBtn.onclick = () => injectProfilePanel(uid, db, dbMod);
+
+    function waitFor(fn, timeout, interval) {
+      timeout = timeout || 1000; interval = interval || 50;
+      return new Promise(resolve => {
+        const start = Date.now();
+        (function check() {
+          let v; try { v = fn(); } catch (e) { v = null; }
+          if (v) return resolve(v);
+          if (Date.now() - start >= timeout) return resolve(null);
+          setTimeout(check, interval);
+        })();
+      });
+    }
+
+    function getQuestion() {
+      try {
+        const app = document.getElementById("app");
+        if (!app || !app.__vue__) return null;
+        function walk(node, depth) {
+          if (!node || typeof node !== "object" || depth > 15) return null;
+          if (node.__ob__) return null;
+          if (node.currentQuestion && node.currentQuestion.childQuestions) return node.currentQuestion;
+          if (node.currentQuestion && node.currentQuestion.questionId) return node.currentQuestion;
+          if (node.childQuestions && Array.isArray(node.childQuestions)) return node;
+          if (node.$data) {
+            for (const k in node.$data) {
+              const v = node.$data[k];
+              if (v && typeof v === "object") {
+                const r = walk(v, depth + 1);
+                if (r) return r;
+              }
+            }
+          }
+          if (node.$children) {
+            for (const c of node.$children) {
+              const r = walk(c, depth + 1);
+              if (r) return r;
+            }
+          }
+          return null;
+        }
+        return walk(app.__vue__, 0);
+      } catch (e) { return null; }
+    }
+
+    function getQuestionKey(q) {
+      if (!q) return null;
+      if (q.questionId) return q.questionId;
+      if (q.childQuestions) return JSON.stringify(q.childQuestions.map(x => x.questionAnswer));
+      return null;
+    }
+
+    function rollCorrect() { return Math.random() * 100 < correctChance; }
+    function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+    function renderValue(raw) {
+      if (Array.isArray(raw)) raw = raw.join(" ; ");
+      raw = String(raw);
+      const re = /\$\$\s*\\+frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}\s*\$\$/g;
+      const parts = [];
+      let last = 0, m, found = false;
+      while ((m = re.exec(raw)) !== null) {
+        found = true;
+        parts.push(esc(raw.slice(last, m.index)));
+        parts.push('<span class="frac"><span class="num">' + esc(m[1]) + '</span><span class="den">' + esc(m[2]) + "</span></span>");
+        last = re.lastIndex;
+      }
+      if (!found) return esc(raw);
+      parts.push(esc(raw.slice(last)));
+      return parts.join("");
+    }
+
+    showBtn.addEventListener("click", async () => {
+      const q = getQuestion();
+      if (!q || !q.childQuestions || !q.childQuestions.length) {
+        outEl.innerHTML = '<div class="lbl">Result</div><div class="err">No question found.</div>';
+        outEl.classList.add("show");
+        return;
+      }
+      const list = q.childQuestions.filter(c => c.questionAnswer);
+      if (!list.length) {
+        outEl.innerHTML = '<div class="lbl">Result</div><div class="err">No answer found.</div>';
+        outEl.classList.add("show");
+        return;
+      }
+      let html = '<div class="lbl">Answer</div>';
+      list.forEach(c => {
+        html += '<div class="ans-row">';
+        if (list.length > 1) html += '<span class="ans-q">Q' + c.questionNo + "</span>";
+        html += '<span class="val">' + renderValue(c.questionAnswer) + "</span></div>";
+      });
+      outEl.innerHTML = html;
+      outEl.classList.add("show");
+      if (onShow) onShow();
+      dbMod.updateDoc(dbMod.doc(db, "users", uid), { showStats: dbMod.increment(1) }).catch(() => {});
+    });
+
+    function fillInputs(q, forceWrong) {
+      const card = document.querySelector(".practice_base_topic_card") || document;
+      const inputs = card.querySelectorAll("textarea.ant-input");
+      if (!inputs.length) return 0;
+      const answers = (q.childQuestions || []).filter(c => c.questionAnswer);
+      let filled = 0;
+      for (let i = 0; i < inputs.length; i++) {
+        const input = inputs[i];
+        const a = answers[i];
+        if (!a) break;
+        let val = a.questionAnswer;
+        if (Array.isArray(val)) val = val[0];
+        if (typeof val !== "string") val = String(val);
+        if (forceWrong) val = randomWrongText(val);
+        if (input.value === val) continue;
+        input.focus();
+        input.value = val;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        input.blur();
+        input.style.outline = "2px solid " + (forceWrong ? "var(--danger)" : "var(--success)");
+        filled++;
+      }
+      return filled;
+    }
+
+    function randomWrongText(original) {
+      if (/^-?\d+(\.\d+)?$/.test(original)) {
+        const n = parseFloat(original);
+        const delta = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.floor(Math.random() * 5));
+        return String(n + delta);
+      }
+      return original;
+    }
+
+    function clickChoices(q, forceWrong) {
+      const card = document.querySelector(".practice_base_topic_card") || document;
+      const groups = card.querySelectorAll("ul.TEXT, ul.MATH, ul.CHINESE, ul.ENGLISH");
+      if (!groups.length) return 0;
+      const answers = (q.childQuestions || []).filter(c => c.questionAnswer).map(c => {
+        let raw = c.questionAnswer;
+        if (Array.isArray(raw)) raw = raw.join(";");
+        return { raw: String(raw), child: c };
+      });
+      let clicked = 0;
+
+      for (let gi = 0; gi < groups.length; gi++) {
+        const ul = groups[gi];
+        if (ul.classList.contains("options_box") || ul.closest(".select_component")) continue;
+        const items = ul.querySelectorAll('li[class*="optionNumOneRaw"]');
+        if (!items.length) continue;
+        const a = answers[gi] || answers[answers.length - 1];
+        if (!a) continue;
+
+        const targetLetters = [];
+        const targetTexts = [];
+        const raw = a.raw;
+        if (raw) {
+          if (/[;|,]/.test(raw)) {
+            raw.split(/[;|,]/).forEach(part => {
+              const t = part.trim().toUpperCase();
+              if (t) targetLetters.push(t);
+            });
+          } else if (/^\s*[A-Z]\s*$/.test(raw)) {
+            targetLetters.push(raw.trim().toUpperCase());
+          } else if (/^[A-Z]{2,}$/.test(raw.trim())) {
+            raw.trim().toUpperCase().split("").forEach(l => targetLetters.push(l));
+          } else {
+            targetTexts.push(raw);
+          }
+        }
+        if (!targetLetters.length && !targetTexts.length && a.child && a.child.options) {
+          a.child.options.forEach(o => {
+            if (o.correct || o.isCorrect) {
+              if (o.optionNo) targetLetters.push(String(o.optionNo).toUpperCase());
+              else if (o.optionContent) targetTexts.push(String(o.optionContent).trim());
+            }
+          });
+        }
+
+        const allLetters = ["A", "B", "C", "D", "E", "F", "G", "H"];
+        const correctIdxs = [];
+        targetLetters.forEach(l => {
+          const idx = allLetters.indexOf(l.toUpperCase());
+          if (idx >= 0) correctIdxs.push(idx);
+        });
+
+        const wrongIdxList = [];
+        if (forceWrong) {
+          const pool = [];
+          for (let i = 0; i < items.length; i++) {
+            if (!correctIdxs.includes(i)) pool.push(i);
+          }
+          const need = Math.max(1, correctIdxs.length);
+          for (let i = 0; i < need && pool.length; i++) {
+            const pick = Math.floor(Math.random() * pool.length);
+            wrongIdxList.push(pool[pick]);
+            pool.splice(pick, 1);
+          }
+        }
+
+        if (!forceWrong) {
+          for (const letter of targetLetters) {
+            const upper = letter.toUpperCase();
+            let matched = null;
+            for (const li of items) {
+              const label = li.querySelector(".label span");
+              if (label && label.textContent.replace(/\s|&nbsp;/g, "") === upper + ".") {
+                matched = li;
+                break;
+              }
+            }
+            if (!matched) {
+              const idx = upper.charCodeAt(0) - 65;
+              if (idx >= 0 && idx < items.length) matched = items[idx];
+            }
+            if (matched && matched.dataset.autofilled !== "1") {
+              matched.click();
+              matched.dataset.autofilled = "1";
+              matched.style.outline = "2px solid var(--success)";
+              clicked++;
+            }
+          }
+        }
+
+        for (const wi of wrongIdxList) {
+          const li = items[wi];
+          if (!li || li.dataset.autofilled === "1") continue;
+          li.click();
+          li.dataset.autofilled = "1";
+          li.style.outline = "2px solid var(--danger)";
+          clicked++;
+        }
+
+        if (!forceWrong) {
+          for (const text of targetTexts) {
+            for (const li of items) {
+              const con = li.querySelector(".con span") || li.querySelector(".con");
+              if (con && (con.textContent.trim() === text || con.textContent.trim().includes(text) || text.includes(con.textContent.trim()))) {
+                if (li.dataset.autofilled === "1") break;
+                li.click();
+                li.dataset.autofilled = "1";
+                li.style.outline = "2px solid var(--success)";
+                clicked++;
+                break;
+              }
+            }
+          }
+        }
+      }
+      return clicked;
+    }
+
+    async function fillDropdowns(q, forceWrong) {
+      const card = document.querySelector(".practice_base_topic_card") || document;
+      const comps = card.querySelectorAll(".select_component");
+      if (!comps.length) return 0;
+      const answers = (q.childQuestions || []).filter(c => c.questionAnswer);
+      let filled = 0;
+
+      for (let i = 0; i < comps.length; i++) {
+        const comp = comps[i];
+        const a = answers[i];
+        if (!a) continue;
+
+        let raw = Array.isArray(a.questionAnswer) ? a.questionAnswer[0] : a.questionAnswer;
+        let letter = String(raw).trim().toUpperCase();
+        if (forceWrong && a.options && a.options.length > 1) {
+          const alternatives = a.options.map(o => o.optionNo).filter(n => n !== letter);
+          if (alternatives.length) letter = alternatives[Math.floor(Math.random() * alternatives.length)];
+        }
+
+        let targetContent = null;
+        if (a.options && Array.isArray(a.options)) {
+          const opt = a.options.find(o => o.optionNo === letter);
+          if (opt) targetContent = String(opt.optionContent).trim();
+        }
+        if (!targetContent) continue;
+
+        let lis = comp.querySelectorAll(".options_box li");
+        if (lis.length === 0) {
+          const vue = comp.__vue__;
+          if (vue && vue.$data && "flag" in vue.$data) {
+            vue.$data.flag = true;
+            if (vue.$forceUpdate) vue.$forceUpdate();
+          } else {
+            const trigger = comp.querySelector(".select_box");
+            if (trigger) trigger.click();
+          }
+          lis = await waitFor(() => {
+            const o = comp.querySelectorAll(".options_box li");
+            return o.length ? o : null;
+          }, 1500, 60);
+        }
+        if (!lis || !lis.length) continue;
+
+        let target = null;
+        for (const li of lis) {
+          if (li.textContent.trim() === targetContent) { target = li; break; }
+        }
+        if (!target) {
+          const norm = targetContent.replace(/\s+/g, "");
+          for (const li of lis) {
+            if (li.textContent.replace(/\s+/g, "") === norm) { target = li; break; }
+          }
+        }
+        if (!target) continue;
+        target.click();
+        filled++;
+        await new Promise(r => setTimeout(r, 100));
+      }
+      return filled;
+    }
+
+    function findNextButton() {
+      const card = document.querySelector(".practice_base_topic_card") || document;
+      const btns = card.querySelectorAll(".ael_btn");
+      for (const b of btns) {
+        if (b.textContent.includes("下一題") || b.textContent.includes("下一题")) return b;
+      }
+      const all = document.querySelectorAll('.ael_btn, button, [role="button"]');
+      for (const b of all) {
+        if (b.textContent && b.textContent.includes("下一題")) return b;
+      }
+      return null;
+    }
+
+    async function tick() {
+      if (!autoEnabled || busy) return;
+      busy = true;
+      try {
+        const q = getQuestion();
+        if (!q) return;
+        const key = getQuestionKey(q);
+        if (!key || key === lastKey) return;
+        lastKey = key;
+
+        document.querySelectorAll('[data-autofilled="1"]').forEach(el => {
+          el.removeAttribute("data-autofilled");
+          el.style.outline = "";
+        });
+
+        const forceWrong = !rollCorrect();
+        fillInputs(q, forceWrong);
+        clickChoices(q, forceWrong);
+        await fillDropdowns(q, forceWrong);
+
+        if (onAuto) onAuto();
+        dbMod.updateDoc(dbMod.doc(db, "users", uid), { autoStats: dbMod.increment(1) }).catch(() => {});
+
+        await new Promise(r => setTimeout(r, advanceDelay));
+        if (!autoEnabled) return;
+
+        const next = findNextButton();
+        if (next) next.click();
+      } finally { busy = false; }
+    }
+
+    toggle.addEventListener("click", () => {
+      autoEnabled = !autoEnabled;
+      toggle.classList.toggle("active", autoEnabled);
+    });
+    slider.addEventListener("input", () => {
+      correctChance = parseInt(slider.value, 10);
+      sliderVal.textContent = correctChance + "%";
+    });
+    speedSlider.addEventListener("input", () => {
+      advanceDelay = parseInt(speedSlider.value, 10);
+      speedVal.textContent = advanceDelay + "ms";
+    });
+    closeBtn.addEventListener("click", () => root.remove());
+
+    setInterval(tick, 800);
+  }
+
+  async function injectProfilePanel(uid, db, dbMod) {
+    const existing = document.getElementById("af-profile-panel");
+    if (existing) { existing.remove(); return; }
+
+    const panel = document.createElement("div");
+    panel.id = "af-profile-panel";
+    panel.style = "position:fixed; top:20%; left:20%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:22px; z-index:2147483649; width:320px; color:var(--text); font-family:'Inter',-apple-system,sans-serif; box-shadow:var(--shadow);";
+    panel.innerHTML = `
+      <button id="af-profile-close" style="position:absolute; top:12px; right:12px; background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:18px;">&times;</button>
+      <h2 style="margin-top:0; color:var(--accent); font-size:16px; font-weight:600;">${t("profileTitle")}</h2>
+      <input type="text" id="af-search" placeholder="${t("profileSearchPlaceholder")}" style="width:100%; padding:10px 12px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
+      <div id="af-profile-result"></div>`;
+    document.body.appendChild(panel);
+    document.getElementById("af-profile-close").onclick = () => panel.remove();
+
+    const searchIn = document.getElementById("af-search");
+    const resDiv = document.getElementById("af-profile-result");
+
+    searchIn.addEventListener("input", async () => {
+      const q = searchIn.value.trim().toLowerCase();
+      if (!q) return resDiv.innerHTML = "";
+
+      const uSnap = await dbMod.getDoc(dbMod.doc(db, "usernames", q));
+      if (!uSnap.exists()) {
+        resDiv.innerHTML = '<div style="color:var(--danger); margin-top:12px; font-size:13px;">' + t("profileNotFound") + '</div>';
+        return;
+      }
+      const uData = uSnap.data();
+      const userDoc = await dbMod.getDoc(dbMod.doc(db, "users", uData.uid));
+      if (!userDoc.exists()) return;
+
+      const data = userDoc.data();
+      const isMe = uData.uid === uid;
+      const status = data.isBanned ? '<span style="color:var(--danger);">' + t("profileBanned") + '</span>' : '<span style="color:var(--success);">' + t("profileActive") + '</span>';
+      const role = data.username === ADMIN_USERNAME ? '<span style="color:var(--danger);">' + t("adminAdmin") + '</span>' : (data.isMod ? '<span style="color:var(--warning);">' + t("adminMod") + '</span>' : "");
+
+      resDiv.innerHTML = `
+        <div class="af-profile-card">
+          <h3>${data.username} ${isMe ? t("profileYou") : ""} ${role}</h3>
+          <div style="font-size:12px; color:var(--text-dim);">${t("profileStatus")}: ${status}</div>
+          <div class="af-profile-stats">
+            <div>${t("profileAutoStats")}: <b>${data.autoStats || 0}</b></div>
+            <div>${t("profileShowStats")}: <b>${data.showStats || 0}</b></div>
+          </div>
+        </div>`;
+    });
+  }
+
+  function injectChatPanel(uid, username, db, dbMod) {
+    if (document.getElementById("af-chat-fab")) return;
+
+    const fab = document.createElement("button");
+    fab.className = "af-fab chat";
+    fab.id = "af-chat-fab";
+    fab.textContent = t("chatFab");
+    let isFabDragging = false, fabX = 0, fabY = 0, fabMoved = false;
+    fab.addEventListener("pointerdown", e => {
+      isFabDragging = true; fabMoved = false;
+      fabX = e.clientX - fab.getBoundingClientRect().left;
+      fabY = e.clientY - fab.getBoundingClientRect().top;
+      try { fab.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    fab.addEventListener("pointermove", e => {
+      if (!isFabDragging) return;
+      fabMoved = true;
+      fab.style.left = (e.clientX - fabX) + "px";
+      fab.style.top = (e.clientY - fabY) + "px";
+    });
+    fab.addEventListener("pointerup", () => isFabDragging = false);
+    fab.addEventListener("pointercancel", () => isFabDragging = false);
+    document.body.appendChild(fab);
+
+    fab.onclick = async () => {
+      if (fabMoved) return;
+      const existing = document.getElementById("af-chat-panel");
+      if (existing) { existing.remove(); return; }
+
+      const panel = document.createElement("div");
+      panel.id = "af-chat-panel";
+      panel.innerHTML = `
+        <div id="af-chat-header"><h2>${t("chatTitle")}</h2><button id="af-chat-close">&times;</button></div>
         <div class="af-tabs">
-          <div class="af-tab active" data-tab="global">Global</div>
-          <div class="af-tab" data-tab="groups">Groups</div>
+          <div class="af-tab active" data-tab="global">${t("chatTabGlobal")}</div>
+          <div class="af-tab" data-tab="groups">${t("chatTabGroups")}</div>
         </div>
         <div class="af-tab-content" id="af-tab-global">
           <div id="af-chat-box"></div>
           <form id="af-chat-form">
-            <input type="text" id="af-chat-input" placeholder="Type a message..." autocomplete="off" maxlength="500">
-            <button id="af-chat-send" type="submit">Send</button>
+            <input type="text" id="af-chat-input" placeholder="${t("chatPlaceholder")}" autocomplete="off" maxlength="500">
+            <button id="af-chat-send" type="submit">${t("chatSend")}</button>
           </form>
         </div>
         <div class="af-tab-content" id="af-tab-groups" style="display:none;">
-          <div class="af-section-title" style="display:flex; justify-content:space-between; align-items:center;">Your Groups
-            <button class="af-btn" id="af-create-group-btn" style="padding:5px 12px; font-size:11.5px;">+ New Group</button>
+          <div class="af-section-title" style="display:flex; justify-content:space-between; align-items:center;">${t("chatYourGroups")}
+            <button class="af-btn" id="af-create-group-btn" style="padding:5px 12px; font-size:11.5px;">${t("chatNewGroup")}</button>
           </div>
-          <div id="af-group-list"><div style="color:var(--text-dim); font-size:12px;">No groups yet.</div></div>
+          <div id="af-group-list"><div style="color:var(--text-dim); font-size:12px;">${t("chatNoGroups")}</div></div>
           <div id="af-group-view" style="display:none; margin-top:15px;">
-            <div class="af-section-title" id="af-group-view-title">Group</div>
+            <div class="af-section-title" id="af-group-view-title">${t("chatGroup")}</div>
             <div id="af-group-members"></div>
             <div id="af-group-msg-box"></div>
             <form id="af-group-msg-form">
-              <input type="text" id="af-group-msg-input" placeholder="Message the group..." autocomplete="off" maxlength="500">
-              <button id="af-group-msg-send" type="submit">Send</button>
+              <input type="text" id="af-group-msg-input" placeholder="${t("chatPlaceholder")}" autocomplete="off" maxlength="500">
+              <button id="af-group-msg-send" type="submit">${t("chatSend")}</button>
             </form>
             <div style="margin-top:10px; display:flex; gap:6px;">
-              <button class="af-btn secondary" id="af-add-member-btn" style="font-size:11.5px;">+ Add Member</button>
-              <button class="af-btn danger" id="af-leave-group-btn" style="font-size:11.5px;">Leave Group</button>
+              <button class="af-btn secondary" id="af-add-member-btn" style="font-size:11.5px;">${t("chatAddMember")}</button>
+              <button class="af-btn danger" id="af-leave-group-btn" style="font-size:11.5px;">${t("chatLeaveGroup")}</button>
             </div>
           </div>
-        </div>`,document.body.appendChild(i),document.getElementById("af-chat-close").onclick=()=>i.remove();let s=!1,l=0,d=0,p=document.getElementById("af-chat-header");p.addEventListener("pointerdown",e=>{if("af-chat-close"!==e.target.id){s=!0,l=e.clientX-i.getBoundingClientRect().left,d=e.clientY-i.getBoundingClientRect().top;try{p.setPointerCapture(e.pointerId)}catch(t){}}}),p.addEventListener("pointermove",e=>{s&&(i.style.transform="none",i.style.left=e.clientX-l+"px",i.style.top=e.clientY-d+"px")}),p.addEventListener("pointerup",()=>s=!1),p.addEventListener("pointercancel",()=>s=!1),i.querySelectorAll(".af-tab").forEach(e=>{e.onclick=()=>{i.querySelectorAll(".af-tab").forEach(e=>e.classList.remove("active")),e.classList.add("active");let t=e.dataset.tab;document.getElementById("af-tab-global").style.display="global"===t?"":"none",document.getElementById("af-tab-groups").style.display="groups"===t?"":"none"}});let u=document.getElementById("af-chat-box"),f=document.getElementById("af-chat-form"),g=document.getElementById("af-chat-input"),m=n.query(n.collection(o,"globalChat"),n.orderBy("timestamp"),n.limit(100));n.onSnapshot(m,e=>{u.innerHTML="",e.forEach(e=>{let a=e.data();if(!a.timestamp)return;let r=new Date(a.timestamp).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),o=a.author===t,n=a.isMod,i=document.createElement("div");i.className="af-chat-msg",i.innerHTML=`<span class="author ${o?"admin":n?"mod":""}">${S(a.author)}</span> <span style="color:var(--text-muted); font-size:10px;">${r}</span><br><span class="text">${S(a.text)}</span>`,u.appendChild(i)}),u.scrollTop=u.scrollHeight});let b=!1;n.onSnapshot(n.doc(o,"users",a),e=>{e.exists()&&(b=!!e.data().isMod)}),f.onsubmit=async e=>{e.preventDefault();let t=g.value.trim();if(!t)return;g.value="";let a=document.createElement("div");a.className="af-chat-msg",a.style.opacity="0.6",a.innerHTML=`<span class="author">${S(r)}</span> <span style="color:var(--text-muted); font-size:10px;">sending…</span><br><span class="text">${S(t)}</span>`,u.appendChild(a),u.scrollTop=u.scrollHeight;try{await n.addDoc(n.collection(o,"globalChat"),{author:r,isMod:b,text:t,timestamp:Date.now()}),a.style.opacity="0",setTimeout(()=>a.remove(),200)}catch(i){a.style.opacity="1",a.style.color="var(--danger)",a.querySelector("span[style]").textContent="failed"}};let v=document.getElementById("af-group-list"),x=document.getElementById("af-group-view"),h=document.getElementById("af-group-view-title"),$=document.getElementById("af-group-members"),y=document.getElementById("af-group-msg-box"),_=document.getElementById("af-group-msg-form"),w=document.getElementById("af-group-msg-input"),k=document.getElementById("af-create-group-btn"),E=document.getElementById("af-add-member-btn"),C=document.getElementById("af-leave-group-btn"),I=null,L=null,B={};function S(e){return String(e).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}n.onSnapshot(n.collection(o,"groups"),e=>{let t=[];if(B={},e.forEach(e=>{let a=e.data();B[e.id]=a,a.members&&a.members[r]&&t.push({id:e.id,...a})}),v.innerHTML="",!t.length){v.innerHTML='<div style="color:var(--text-dim); font-size:12px;">No groups yet.</div>';return}t.forEach(e=>{let t=document.createElement("div");t.className="af-group-item"+(e.id===I?" selected":"");let a=Object.keys(e.members||{}).length;t.innerHTML=`<div><div class="gname">${S(e.name)}</div><div class="gmembers">${a} member${1===a?"":"s"}</div></div>`,t.onclick=()=>(function e(t){var a;I=t,x.style.display="block";let i=B[t];if(!i)return;h.textContent=i.name,a=i,$.innerHTML="",Object.keys(a.members||{}).forEach(e=>{let t=document.createElement("div");t.className="af-member-chip",t.innerHTML=`<span>${S(e)}</span>`+(e===r?"":`<span class="rm" data-user="${S(e)}">\xd7</span>`),$.appendChild(t)}),$.querySelectorAll(".rm").forEach(e=>{e.onclick=async()=>{if(!I)return;let t=n.doc(o,"groups",I),a=await n.getDoc(t);if(!a.exists())return;let r={...a.data().members||{}};delete r[e.dataset.user],await n.updateDoc(t,{members:r})}}),L&&L();let s=n.query(n.collection(o,"groups",t,"messages"),n.orderBy("timestamp"),n.limit(200));L=n.onSnapshot(s,e=>{y.innerHTML="",e.forEach(e=>{let t=e.data();if(!t.timestamp)return;let a=new Date(t.timestamp).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),r=document.createElement("div");r.className="af-chat-msg",r.innerHTML=`<span class="author">${S(t.author)}</span> <span style="color:var(--text-muted); font-size:10px;">${a}</span><br><span class="text">${S(t.text)}</span>`,y.appendChild(r)}),y.scrollTop=y.scrollHeight}),_.onsubmit=async e=>{e.preventDefault();let t=w.value.trim();t&&I&&(w.value="",await n.addDoc(n.collection(o,"groups",I,"messages"),{author:r,text:t,timestamp:Date.now()}))},C.onclick=async()=>{if(!confirm("Leave this group?"))return;let e=n.doc(o,"groups",t),a=await n.getDoc(e);if(!a.exists())return;let i={...a.data().members||{}};delete i[r],0===Object.keys(i).length?await n.deleteDoc(e):await n.updateDoc(e,{members:i}),L&&(L(),L=null),I=null,x.style.display="none"},E.onclick=()=>(function e(t){let a=document.createElement("div");a.style="position:fixed; inset:0; background:rgba(8,8,10,0.85); backdrop-filter:blur(6px); z-index:2147483650; display:flex; align-items:center; justify-content:center;",a.innerHTML=`
-          <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; width:340px; color:var(--text); font-family:'Inter',-apple-system,sans-serif; box-shadow:var(--shadow);">
-            <h3 style="margin:0 0 16px 0; color:var(--accent); font-size:16px; font-weight:600;">Add Member</h3>
-            <input type="text" id="af-group-user-search" placeholder="Search username..." autocomplete="off">
-            <div id="af-group-search-results"></div>
-            <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
-              <button class="af-btn secondary" id="af-group-cancel">Close</button>
-            </div>
-            <div id="af-group-create-err" style="color:var(--danger); font-size:12px; margin-top:10px; min-height:14px;"></div>
-          </div>`,document.body.appendChild(a);let i=document.getElementById("af-group-user-search"),s=document.getElementById("af-group-search-results"),l=document.getElementById("af-group-create-err");document.getElementById("af-group-cancel").onclick=()=>a.remove(),i.addEventListener("input",async()=>{let e=i.value.trim().toLowerCase();if(s.innerHTML="",!e)return;let d=await n.getDoc(n.doc(o,"usernames",e));if(!d.exists()){s.innerHTML='<div style="padding:10px 12px; color:var(--text-dim); font-size:12px;">No user found.</div>';return}let c=n.doc(o,"groups",t),p=await n.getDoc(c);if(!p.exists())return;let u=p.data().members||{};if(u[e]){s.innerHTML='<div style="padding:10px 12px; color:var(--text-dim); font-size:12px;">Already a member.</div>';return}if(e===r)return;let f=document.createElement("div");f.className="af-search-result",f.innerHTML=`<span>${S(e)}</span><span class="add">+ Add</span>`,f.onclick=async()=>{try{let t={...u,[e]:!0};await n.updateDoc(c,{members:t}),a.remove()}catch(r){l.textContent=r.message}},s.appendChild(f)})})(t)})(e.id),v.appendChild(t)})}),k.onclick=()=>{let e=document.createElement("div");e.style="position:fixed; inset:0; background:rgba(8,8,10,0.85); backdrop-filter:blur(6px); z-index:2147483650; display:flex; align-items:center; justify-content:center;",e.innerHTML=`
+        </div>`;
+      document.body.appendChild(panel);
+      document.getElementById("af-chat-close").onclick = () => panel.remove();
+
+      let isPanelDragging = false, panelX = 0, panelY = 0;
+      const header = document.getElementById("af-chat-header");
+      header.addEventListener("pointerdown", e => {
+        if (e.target.id === "af-chat-close") return;
+        isPanelDragging = true;
+        panelX = e.clientX - panel.getBoundingClientRect().left;
+        panelY = e.clientY - panel.getBoundingClientRect().top;
+        try { header.setPointerCapture(e.pointerId); } catch (err) {}
+      });
+      header.addEventListener("pointermove", e => {
+        if (!isPanelDragging) return;
+        panel.style.transform = "none";
+        panel.style.left = (e.clientX - panelX) + "px";
+        panel.style.top = (e.clientY - panelY) + "px";
+      });
+      header.addEventListener("pointerup", () => isPanelDragging = false);
+      header.addEventListener("pointercancel", () => isPanelDragging = false);
+
+      panel.querySelectorAll(".af-tab").forEach(tab => {
+        tab.onclick = () => {
+          panel.querySelectorAll(".af-tab").forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+          const which = tab.dataset.tab;
+          document.getElementById("af-tab-global").style.display = which === "global" ? "" : "none";
+          document.getElementById("af-tab-groups").style.display = which === "groups" ? "" : "none";
+        };
+      });
+
+      const chatBox = document.getElementById("af-chat-box");
+      const chatForm = document.getElementById("af-chat-form");
+      const chatInput = document.getElementById("af-chat-input");
+
+      const globalQ = dbMod.query(
+        dbMod.collection(db, "globalChat"),
+        dbMod.orderBy("timestamp"),
+        dbMod.limit(100)
+      );
+      dbMod.onSnapshot(globalQ, snapshot => {
+        chatBox.innerHTML = "";
+        snapshot.forEach(d => {
+          const data = d.data();
+          if (!data.timestamp) return;
+          const time = new Date(data.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          const isAdminMsg = data.author === ADMIN_USERNAME;
+          const isModMsg = data.isMod;
+          const div = document.createElement("div");
+          div.className = "af-chat-msg";
+          div.innerHTML = `<span class="author ${isAdminMsg ? "admin" : isModMsg ? "mod" : ""}">${escapeHtml(data.author)}</span> <span style="color:var(--text-muted); font-size:10px;">${time}</span><br><span class="text">${escapeHtml(data.text)}</span>`;
+          chatBox.appendChild(div);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+      });
+
+      let isModCached = false;
+      dbMod.onSnapshot(dbMod.doc(db, "users", uid), s => {
+        if (s.exists()) isModCached = !!s.data().isMod;
+      });
+
+      chatForm.onsubmit = async e => {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text) return;
+        chatInput.value = "";
+
+        const localDiv = document.createElement("div");
+        localDiv.className = "af-chat-msg";
+        localDiv.style.opacity = "0.6";
+        localDiv.innerHTML = `<span class="author">${escapeHtml(username)}</span> <span style="color:var(--text-muted); font-size:10px;">${t("chatSending")}</span><br><span class="text">${escapeHtml(text)}</span>`;
+        chatBox.appendChild(localDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        try {
+          await dbMod.addDoc(dbMod.collection(db, "globalChat"), {
+            author: username,
+            isMod: isModCached,
+            text: text,
+            timestamp: Date.now()
+          });
+          localDiv.style.opacity = "0";
+          setTimeout(() => localDiv.remove(), 200);
+        } catch (err) {
+          localDiv.style.opacity = "1";
+          localDiv.style.color = "var(--danger)";
+          localDiv.querySelector("span[style]").textContent = t("chatFailed");
+        }
+      };
+
+      const groupListEl = document.getElementById("af-group-list");
+      const groupView = document.getElementById("af-group-view");
+      const groupViewTitle = document.getElementById("af-group-view-title");
+      const groupMembersEl = document.getElementById("af-group-members");
+      const groupMsgBox = document.getElementById("af-group-msg-box");
+      const groupMsgForm = document.getElementById("af-group-msg-form");
+      const groupMsgInput = document.getElementById("af-group-msg-input");
+      const createGroupBtn = document.getElementById("af-create-group-btn");
+      const addMemberBtn = document.getElementById("af-add-member-btn");
+      const leaveGroupBtn = document.getElementById("af-leave-group-btn");
+
+      let selectedGroupId = null;
+      let groupUnsub = null;
+      let groupsCache = {};
+
+      function escapeHtml(s) {
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      }
+
+      dbMod.onSnapshot(dbMod.collection(db, "groups"), snap => {
+        const mine = [];
+        groupsCache = {};
+        snap.forEach(d => {
+          const data = d.data();
+          groupsCache[d.id] = data;
+          if (data.members && data.members[username]) {
+            mine.push({ id: d.id, ...data });
+          }
+        });
+        groupListEl.innerHTML = "";
+        if (!mine.length) {
+          groupListEl.innerHTML = '<div style="color:var(--text-dim); font-size:12px;">' + t("chatNoGroups") + '</div>';
+          return;
+        }
+        mine.forEach(g => {
+          const item = document.createElement("div");
+          item.className = "af-group-item" + (g.id === selectedGroupId ? " selected" : "");
+          const mc = Object.keys(g.members || {}).length;
+          item.innerHTML = `<div><div class="gname">${escapeHtml(g.name)}</div><div class="gmembers">${mc} member${mc === 1 ? "" : "s"}</div></div>`;
+          item.onclick = () => openGroup(g.id);
+          groupListEl.appendChild(item);
+        });
+      });
+
+      function openGroup(gid) {
+        selectedGroupId = gid;
+        groupView.style.display = "block";
+        const g = groupsCache[gid];
+        if (!g) return;
+        groupViewTitle.textContent = g.name;
+        renderMembers(g);
+
+        if (groupUnsub) groupUnsub();
+        const msgQ = dbMod.query(
+          dbMod.collection(db, "groups", gid, "messages"),
+          dbMod.orderBy("timestamp"),
+          dbMod.limit(200)
+        );
+        groupUnsub = dbMod.onSnapshot(msgQ, snap => {
+          groupMsgBox.innerHTML = "";
+          snap.forEach(d => {
+            const data = d.data();
+            if (!data.timestamp) return;
+            const time = new Date(data.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            const div = document.createElement("div");
+            div.className = "af-chat-msg";
+            div.innerHTML = `<span class="author">${escapeHtml(data.author)}</span> <span style="color:var(--text-muted); font-size:10px;">${time}</span><br><span class="text">${escapeHtml(data.text)}</span>`;
+            groupMsgBox.appendChild(div);
+          });
+          groupMsgBox.scrollTop = groupMsgBox.scrollHeight;
+        });
+
+        groupMsgForm.onsubmit = async e => {
+          e.preventDefault();
+          const text = groupMsgInput.value.trim();
+          if (!text || !selectedGroupId) return;
+          groupMsgInput.value = "";
+          await dbMod.addDoc(dbMod.collection(db, "groups", selectedGroupId, "messages"), {
+            author: username,
+            text: text,
+            timestamp: Date.now()
+          });
+        };
+
+        leaveGroupBtn.onclick = async () => {
+          if (!confirm("Leave this group?")) return;
+          const gRef = dbMod.doc(db, "groups", gid);
+          const snap = await dbMod.getDoc(gRef);
+          if (!snap.exists()) return;
+          const members = { ...(snap.data().members || {}) };
+          delete members[username];
+          if (Object.keys(members).length === 0) {
+            await dbMod.deleteDoc(gRef);
+          } else {
+            await dbMod.updateDoc(gRef, { members });
+          }
+          if (groupUnsub) { groupUnsub(); groupUnsub = null; }
+          selectedGroupId = null;
+          groupView.style.display = "none";
+        };
+
+        addMemberBtn.onclick = () => openAddMemberDialog(gid);
+      }
+
+      function renderMembers(g) {
+        groupMembersEl.innerHTML = "";
+        Object.keys(g.members || {}).forEach(m => {
+          const chip = document.createElement("div");
+          chip.className = "af-member-chip";
+          chip.innerHTML = `<span>${escapeHtml(m)}</span>` + (m === username ? "" : `<span class="rm" data-user="${escapeHtml(m)}">×</span>`);
+          groupMembersEl.appendChild(chip);
+        });
+        groupMembersEl.querySelectorAll(".rm").forEach(rm => {
+          rm.onclick = async () => {
+            if (!selectedGroupId) return;
+            const gRef = dbMod.doc(db, "groups", selectedGroupId);
+            const snap = await dbMod.getDoc(gRef);
+            if (!snap.exists()) return;
+            const members = { ...(snap.data().members || {}) };
+            delete members[rm.dataset.user];
+            await dbMod.updateDoc(gRef, { members });
+          };
+        });
+      }
+
+      createGroupBtn.onclick = () => {
+        const overlay = document.createElement("div");
+        overlay.style = "position:fixed; inset:0; background:rgba(8,8,10,0.85); backdrop-filter:blur(6px); z-index:2147483650; display:flex; align-items:center; justify-content:center;";
+        overlay.innerHTML = `
           <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; width:360px; color:var(--text); font-family:'Inter',-apple-system,sans-serif; box-shadow:var(--shadow);">
-            <h3 style="margin:0 0 16px 0; color:var(--accent); font-size:16px; font-weight:600;">Create Group</h3>
-            <input type="text" id="af-group-name-input" placeholder="Group name" maxlength="40" autocomplete="off">
-            <input type="text" id="af-group-user-search" placeholder="Search users to add..." autocomplete="off">
+            <h3 style="margin:0 0 16px 0; color:var(--accent); font-size:16px; font-weight:600;">${t("chatCreateGroup")}</h3>
+            <input type="text" id="af-group-name-input" placeholder="${t("chatGroupName")}" maxlength="40" autocomplete="off">
+            <input type="text" id="af-group-user-search" placeholder="${t("chatSearchUsers")}" autocomplete="off">
             <div id="af-group-search-results"></div>
             <div id="af-group-invite-list" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; min-height:0;"></div>
             <div style="display:flex; gap:8px; justify-content:flex-end;">
-              <button class="af-btn secondary" id="af-group-cancel">Cancel</button>
-              <button class="af-btn" id="af-group-create">Create</button>
+              <button class="af-btn secondary" id="af-group-cancel">${t("chatCancel")}</button>
+              <button class="af-btn" id="af-group-create">${t("chatCreate")}</button>
             </div>
             <div id="af-group-create-err" style="color:var(--danger); font-size:12px; margin-top:10px; min-height:14px;"></div>
-          </div>`,document.body.appendChild(e);let t=document.getElementById("af-group-name-input"),a=document.getElementById("af-group-user-search"),i=document.getElementById("af-group-search-results"),s=document.getElementById("af-group-invite-list"),l=document.getElementById("af-group-create-err"),d=new Set;document.getElementById("af-group-cancel").onclick=()=>e.remove(),a.addEventListener("input",async()=>{let e=a.value.trim().toLowerCase();if(i.innerHTML="",!e)return;let t=await n.getDoc(n.doc(o,"usernames",e));if(!t.exists()){i.innerHTML='<div style="padding:10px 12px; color:var(--text-dim); font-size:12px;">No user found.</div>';return}if(e===r)return;let l=document.createElement("div");l.className="af-search-result",l.innerHTML=`<span>${S(e)}</span><span class="add">+ Add</span>`,l.onclick=()=>{d.has(e)||(d.add(e),function e(){s.innerHTML="",d.forEach(t=>{let a=document.createElement("div");a.className="af-member-chip",a.innerHTML=`<span>${S(t)}</span><span class="rm">\xd7</span>`,a.querySelector(".rm").onclick=()=>{d.delete(t),e()},s.appendChild(a)})}()),a.value="",i.innerHTML=""},i.appendChild(l)}),document.getElementById("af-group-create").onclick=async()=>{let a=t.value.trim();if(!a){l.textContent="Enter a group name.";return}if(0===d.size){l.textContent="Add at least one member.";return}let i={[r]:!0};d.forEach(e=>{i[e]=!0});try{await n.addDoc(n.collection(o,"groups"),{name:a,members:i,createdBy:r,createdAt:Date.now()}),e.remove()}catch(s){l.textContent=s.message}}}}}(e,a,r,n),(a===t||u)&&function e(a,r,o){if(document.getElementById("af-admin-fab"))return;let n=document.createElement("button");n.className="af-fab admin",n.id="af-admin-fab",n.textContent="Admin";let i=!1,s=0,l=0,d=!1;n.addEventListener("pointerdown",e=>{i=!0,d=!1,s=e.clientX-n.getBoundingClientRect().left,l=e.clientY-n.getBoundingClientRect().top;try{n.setPointerCapture(e.pointerId)}catch(t){}}),n.addEventListener("pointermove",e=>{i&&(d=!0,n.style.left=e.clientX-s+"px",n.style.top=e.clientY-l+"px")}),n.addEventListener("pointerup",()=>i=!1),n.addEventListener("pointercancel",()=>i=!1),document.body.appendChild(n),n.onclick=async()=>{if(d)return;let e=document.getElementById("af-admin-panel");if(e){e.remove();return}let n=document.createElement("div");n.id="af-admin-panel",n.innerHTML=`
-        <div id="af-admin-header"><h2>Admin & Mod Panel</h2><button id="af-admin-close">&times;</button></div>
+          </div>`;
+        document.body.appendChild(overlay);
+
+        const nameIn = document.getElementById("af-group-name-input");
+        const searchIn = document.getElementById("af-group-user-search");
+        const resultsEl = document.getElementById("af-group-search-results");
+        const inviteList = document.getElementById("af-group-invite-list");
+        const errEl = document.getElementById("af-group-create-err");
+        const invites = new Set();
+
+        document.getElementById("af-group-cancel").onclick = () => overlay.remove();
+
+        searchIn.addEventListener("input", async () => {
+          const q = searchIn.value.trim().toLowerCase();
+          resultsEl.innerHTML = "";
+          if (!q) return;
+          const snap = await dbMod.getDoc(dbMod.doc(db, "usernames", q));
+          if (!snap.exists()) {
+            resultsEl.innerHTML = '<div style="padding:10px 12px; color:var(--text-dim); font-size:12px;">' + t("chatNoUser") + '</div>';
+            return;
+          }
+          if (q === username) return;
+          const row = document.createElement("div");
+          row.className = "af-search-result";
+          row.innerHTML = `<span>${escapeHtml(q)}</span><span class="add">${t("chatAdd")}</span>`;
+          row.onclick = () => {
+            if (!invites.has(q)) {
+              invites.add(q);
+              renderInvites();
+            }
+            searchIn.value = "";
+            resultsEl.innerHTML = "";
+          };
+          resultsEl.appendChild(row);
+        });
+
+        function renderInvites() {
+          inviteList.innerHTML = "";
+          invites.forEach(u => {
+            const chip = document.createElement("div");
+            chip.className = "af-member-chip";
+            chip.innerHTML = `<span>${escapeHtml(u)}</span><span class="rm">×</span>`;
+            chip.querySelector(".rm").onclick = () => {
+              invites.delete(u);
+              renderInvites();
+            };
+            inviteList.appendChild(chip);
+          });
+        }
+
+        document.getElementById("af-group-create").onclick = async () => {
+          const name = nameIn.value.trim();
+          if (!name) { errEl.textContent = "Enter a group name."; return; }
+          if (invites.size === 0) { errEl.textContent = "Add at least one member."; return; }
+          const members = { [username]: true };
+          invites.forEach(u => { members[u] = true; });
+          try {
+            await dbMod.addDoc(dbMod.collection(db, "groups"), {
+              name: name,
+              members: members,
+              createdBy: username,
+              createdAt: Date.now()
+            });
+            overlay.remove();
+          } catch (e) {
+            errEl.textContent = e.message;
+          }
+        };
+      };
+
+      function openAddMemberDialog(gid) {
+        const overlay = document.createElement("div");
+        overlay.style = "position:fixed; inset:0; background:rgba(8,8,10,0.85); backdrop-filter:blur(6px); z-index:2147483650; display:flex; align-items:center; justify-content:center;";
+        overlay.innerHTML = `
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; width:340px; color:var(--text); font-family:'Inter',-apple-system,sans-serif; box-shadow:var(--shadow);">
+            <h3 style="margin:0 0 16px 0; color:var(--accent); font-size:16px; font-weight:600;">${t("chatAddMember")}</h3>
+            <input type="text" id="af-group-user-search" placeholder="${t("chatSearchUser")}" autocomplete="off">
+            <div id="af-group-search-results"></div>
+            <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
+              <button class="af-btn secondary" id="af-group-cancel">${t("chatClose")}</button>
+            </div>
+            <div id="af-group-create-err" style="color:var(--danger); font-size:12px; margin-top:10px; min-height:14px;"></div>
+          </div>`;
+        document.body.appendChild(overlay);
+
+        const searchIn = document.getElementById("af-group-user-search");
+        const resultsEl = document.getElementById("af-group-search-results");
+        const errEl = document.getElementById("af-group-create-err");
+        document.getElementById("af-group-cancel").onclick = () => overlay.remove();
+
+        searchIn.addEventListener("input", async () => {
+          const q = searchIn.value.trim().toLowerCase();
+          resultsEl.innerHTML = "";
+          if (!q) return;
+          const snap = await dbMod.getDoc(dbMod.doc(db, "usernames", q));
+          if (!snap.exists()) {
+            resultsEl.innerHTML = '<div style="padding:10px 12px; color:var(--text-dim); font-size:12px;">' + t("chatNoUser") + '</div>';
+            return;
+          }
+          const gRef = dbMod.doc(db, "groups", gid);
+          const gSnap = await dbMod.getDoc(gRef);
+          if (!gSnap.exists()) return;
+          const currentMembers = gSnap.data().members || {};
+          if (currentMembers[q]) {
+            resultsEl.innerHTML = '<div style="padding:10px 12px; color:var(--text-dim); font-size:12px;">' + t("chatAlreadyMember") + '</div>';
+            return;
+          }
+          if (q === username) return;
+          const row = document.createElement("div");
+          row.className = "af-search-result";
+          row.innerHTML = `<span>${escapeHtml(q)}</span><span class="add">${t("chatAdd")}</span>`;
+          row.onclick = async () => {
+            try {
+              const updated = { ...currentMembers, [q]: true };
+              await dbMod.updateDoc(gRef, { members: updated });
+              overlay.remove();
+            } catch (e) {
+              errEl.textContent = e.message;
+            }
+          };
+          resultsEl.appendChild(row);
+        });
+      }
+    };
+  }
+
+  function injectAdminPanel(db, dbMod, myUsername) {
+    if (document.getElementById("af-admin-fab")) return;
+
+    const btn = document.createElement("button");
+    btn.className = "af-fab admin";
+    btn.id = "af-admin-fab";
+    btn.textContent = t("adminFab");
+
+    let isBtnDragging = false, btnX = 0, btnY = 0, btnMoved = false;
+    btn.addEventListener("pointerdown", e => {
+      isBtnDragging = true; btnMoved = false;
+      btnX = e.clientX - btn.getBoundingClientRect().left;
+      btnY = e.clientY - btn.getBoundingClientRect().top;
+      try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    btn.addEventListener("pointermove", e => {
+      if (!isBtnDragging) return;
+      btnMoved = true;
+      btn.style.left = (e.clientX - btnX) + "px";
+      btn.style.top = (e.clientY - btnY) + "px";
+    });
+    btn.addEventListener("pointerup", () => isBtnDragging = false);
+    btn.addEventListener("pointercancel", () => isBtnDragging = false);
+    document.body.appendChild(btn);
+
+    btn.onclick = async () => {
+      if (btnMoved) return;
+      const existing = document.getElementById("af-admin-panel");
+      if (existing) { existing.remove(); return; }
+
+      const panel = document.createElement("div");
+      panel.id = "af-admin-panel";
+      panel.innerHTML = `
+        <div id="af-admin-header"><h2>${t("adminTitle")}</h2><button id="af-admin-close">&times;</button></div>
         <div id="af-admin-content">
           <div>
-            <div class="af-section-title">Troll Tool</div>
+            <div class="af-section-title">${t("adminTrollTool")}</div>
             <select id="af-troll-select">
-              <option value="gugugaga">GUGUGAGA Spam</option>
-              <option value="shake">Shake Screen</option>
-              <option value="flip">Flip Screen</option>
-              <option value="alert">Random Alert</option>
-              <option value="troll_cursor">Spooky Cursor</option>
-              <option value="troll_zoom">Infinite Zoom</option>
-              <option value="scary_face">Scary Face</option>
-              <option value="scary_blood">Blood Overlay</option>
-              <option value="scary_invert">Inverted Colors</option>
-              <option value="scary_static">Static Noise + Scream</option>
+              <option value="gugugaga">${t("trollGugugaga")}</option>
+              <option value="shake">${t("trollShake")}</option>
+              <option value="flip">${t("trollFlip")}</option>
+              <option value="alert">${t("trollAlert")}</option>
+              <option value="troll_cursor">${t("trollCursor")}</option>
+              <option value="troll_zoom">${t("trollZoom")}</option>
+              <option value="scary_face">${t("trollScaryFace")}</option>
+              <option value="scary_blood">${t("trollScaryBlood")}</option>
+              <option value="scary_invert">${t("trollScaryInvert")}</option>
+              <option value="scary_static">${t("trollScaryStatic")}</option>
             </select>
           </div>
           <div>
-            <div class="af-section-title">All Users</div>
+            <div class="af-section-title">${t("adminAllUsers")}</div>
             <div id="af-admin-list">Loading...</div>
           </div>
-        </div>`,document.body.appendChild(n),document.getElementById("af-admin-close").onclick=()=>n.remove();let i=!1,s=0,l=0,c=document.getElementById("af-admin-header");c.addEventListener("pointerdown",e=>{if("af-admin-close"!==e.target.id){i=!0,s=e.clientX-n.getBoundingClientRect().left,l=e.clientY-n.getBoundingClientRect().top;try{c.setPointerCapture(e.pointerId)}catch(t){}}}),c.addEventListener("pointermove",e=>{i&&(n.style.transform="none",n.style.left=e.clientX-s+"px",n.style.top=e.clientY-l+"px")}),c.addEventListener("pointerup",()=>i=!1),c.addEventListener("pointercancel",()=>i=!1);let p=document.getElementById("af-admin-list");r.onSnapshot(r.collection(a,"users"),e=>{p.innerHTML="";let n=JSON.parse(localStorage.getItem("aplus_saved_user")).uid;e.forEach(e=>{var i;let s=e.data(),l=e.id,d=s.username===o,c=s.username===t,u=s.isMod,f=d||s.lastSeen&&Date.now()-s.lastSeen<45e3,g=document.createElement("div");g.className="af-user-row";let m=document.createElement("div");m.className="name",m.innerHTML=`<div class="af-status-dot ${f?"af-status-online":"af-status-offline"}"></div> <span>${i=s.username||"?",String(i).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")} <span style="font-size:10px; color:var(--text-muted);">(${l.slice(0,5)})</span></span>`;let b=document.createElement("div");b.className="actions";let v=document.createElement("button");v.textContent="Troll",v.className="troll",v.onclick=async()=>{let e=document.getElementById("af-troll-select").value,t=s.username===o?n:l;await r.setDoc(r.doc(a,"commands",t),{action:e,timestamp:Date.now()}),v.textContent="Sent!",setTimeout(()=>v.textContent="Troll",2e3)},b.appendChild(v);let x=document.createElement("button");if(d?(x.textContent="Me",x.className="disabled",x.disabled=!0):d||c||o!==t&&u?(x.textContent=c?"Admin":"Mod",x.className="disabled",x.disabled=!0):(x.textContent=s.isBanned?"Unban":"Ban",x.className=s.isBanned?"unban":"ban",x.onclick=async()=>{await r.updateDoc(r.doc(a,"users",l),{isBanned:!s.isBanned})}),b.appendChild(x),o===t&&!d&&!c){let h=document.createElement("button");h.textContent=u?"Demod":"Make Mod",h.className=u?"demod":"mod",h.onclick=async()=>{await r.updateDoc(r.doc(a,"users",l),{isMod:!u})},b.appendChild(h)}g.appendChild(m),g.appendChild(b),p.appendChild(g)})})}}(r,n,a)}async function s(e,a,r){let o=document.getElementById("af-profile-panel");if(o){o.remove();return}let n=document.createElement("div");n.id="af-profile-panel",n.style="position:fixed; top:20%; left:20%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:22px; z-index:2147483649; width:320px; color:var(--text); font-family:'Inter',-apple-system,sans-serif; box-shadow:var(--shadow);",n.innerHTML=`
-      <button id="af-profile-close" style="position:absolute; top:12px; right:12px; background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:18px;">&times;</button>
-      <h2 style="margin-top:0; color:var(--accent); font-size:16px; font-weight:600;">Profile Search</h2>
-      <input type="text" id="af-search" placeholder="Search username..." style="width:100%; padding:10px 12px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-size:13px; outline:none; box-sizing:border-box;">
-      <div id="af-profile-result"></div>`,document.body.appendChild(n),document.getElementById("af-profile-close").onclick=()=>n.remove();let i=document.getElementById("af-search"),s=document.getElementById("af-profile-result");i.addEventListener("input",async()=>{let o=i.value.trim().toLowerCase();if(!o)return s.innerHTML="";let n=await r.getDoc(r.doc(a,"usernames",o));if(!n.exists()){s.innerHTML='<div style="color:var(--danger); margin-top:12px; font-size:13px;">User not found.</div>';return}let l=n.data(),d=await r.getDoc(r.doc(a,"users",l.uid));if(!d.exists())return;let c=d.data(),p=l.uid===e,u=c.isBanned?'<span style="color:var(--danger);">Banned</span>':'<span style="color:var(--success);">Active</span>',f=c.username===t?'<span style="color:var(--danger);">Admin</span>':c.isMod?'<span style="color:var(--warning);">Mod</span>':"";s.innerHTML=`
-        <div class="af-profile-card">
-          <h3>${c.username} ${p?"(You)":""} ${f}</h3>
-          <div style="font-size:12px; color:var(--text-dim);">Status: ${u}</div>
-          <div class="af-profile-stats">
-            <div>Auto-Answered: <b>${c.autoStats||0}</b></div>
-            <div>Answers Viewed: <b>${c.showStats||0}</b></div>
-          </div>
-        </div>`})}n()}();
+        </div>`;
+      document.body.appendChild(panel);
+      document.getElementById("af-admin-close").onclick = () => panel.remove();
+
+      let isPanelDragging = false, panelX = 0, panelY = 0;
+      const header = document.getElementById("af-admin-header");
+      header.addEventListener("pointerdown", e => {
+        if (e.target.id === "af-admin-close") return;
+        isPanelDragging = true;
+        panelX = e.clientX - panel.getBoundingClientRect().left;
+        panelY = e.clientY - panel.getBoundingClientRect().top;
+        try { header.setPointerCapture(e.pointerId); } catch (err) {}
+      });
+      header.addEventListener("pointermove", e => {
+        if (!isPanelDragging) return;
+        panel.style.transform = "none";
+        panel.style.left = (e.clientX - panelX) + "px";
+        panel.style.top = (e.clientY - panelY) + "px";
+      });
+      header.addEventListener("pointerup", () => isPanelDragging = false);
+      header.addEventListener("pointercancel", () => isPanelDragging = false);
+
+      const listDiv = document.getElementById("af-admin-list");
+      dbMod.onSnapshot(dbMod.collection(db, "users"), snap => {
+        listDiv.innerHTML = "";
+        const activeUid = JSON.parse(localStorage.getItem('aplus_saved_user')).uid;
+
+        snap.forEach(docSnap => {
+          const data = docSnap.data();
+          const tuid = docSnap.id;
+          const isSelf = data.username === myUsername;
+          const isTargetAdmin = data.username === ADMIN_USERNAME;
+          const isTargetMod = data.isMod;
+          const isOnline = isSelf || (data.lastSeen && (Date.now() - data.lastSeen < 45000));
+
+          const row = document.createElement("div");
+          row.className = "af-user-row";
+
+          const nameWrap = document.createElement("div");
+          nameWrap.className = "name";
+          nameWrap.innerHTML = `<div class="af-status-dot ${isOnline ? "af-status-online" : "af-status-offline"}"></div> <span>${escapeHtml(data.username || "?")} <span style="font-size:10px; color:var(--text-muted);">(${tuid.slice(0,5)})</span></span>`;
+
+          const actions = document.createElement("div");
+          actions.className = "actions";
+
+          const trollBtn = document.createElement("button");
+          trollBtn.textContent = t("adminTroll");
+          trollBtn.className = "troll";
+          trollBtn.onclick = async () => {
+            const effect = document.getElementById("af-troll-select").value;
+            const targetUid = (data.username === myUsername) ? activeUid : tuid;
+            await dbMod.setDoc(dbMod.doc(db, "commands", targetUid), { action: effect, timestamp: Date.now() });
+            trollBtn.textContent = t("adminTrollSent");
+            setTimeout(() => trollBtn.textContent = t("adminTroll"), 2000);
+          };
+          actions.appendChild(trollBtn);
+
+          const banBtn = document.createElement("button");
+          const canBan = !isSelf && !isTargetAdmin && (myUsername === ADMIN_USERNAME || !isTargetMod);
+          if (isSelf) {
+            banBtn.textContent = t("adminMe"); banBtn.className = "disabled"; banBtn.disabled = true;
+          } else if (!canBan) {
+            banBtn.textContent = isTargetAdmin ? t("adminAdmin") : t("adminMod"); banBtn.className = "disabled"; banBtn.disabled = true;
+          } else {
+            banBtn.textContent = data.isBanned ? t("adminUnban") : t("adminBan");
+            banBtn.className = data.isBanned ? "unban" : "ban";
+            banBtn.onclick = async () => {
+              await dbMod.updateDoc(dbMod.doc(db, "users", tuid), { isBanned: !data.isBanned });
+            };
+          }
+          actions.appendChild(banBtn);
+
+          if (myUsername === ADMIN_USERNAME && !isSelf && !isTargetAdmin) {
+            const modBtn = document.createElement("button");
+            modBtn.textContent = isTargetMod ? t("adminDemod") : t("adminMakeMod");
+            modBtn.className = isTargetMod ? "demod" : "mod";
+            modBtn.onclick = async () => {
+              await dbMod.updateDoc(dbMod.doc(db, "users", tuid), { isMod: !isTargetMod });
+            };
+            actions.appendChild(modBtn);
+          }
+
+          row.appendChild(nameWrap);
+          row.appendChild(actions);
+          listDiv.appendChild(row);
+        });
+      });
+    };
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  initAuth();
+}();
