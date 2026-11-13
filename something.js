@@ -1,7 +1,120 @@
-// v2.5.5
+// v2.5.7
 !function () {
   "use strict";
 
+  // ─────────────────────────────────────────────────────────────
+  // Exam data interceptor (must run before the page fires its API)
+  // ─────────────────────────────────────────────────────────────
+  let __afExamCache = null;
+  let __afAnswerCache = { key: null, data: null };
+
+  (function installExamInterceptor() {
+    if (window.__afExamInterceptor) return;
+    window.__afExamInterceptor = true;
+
+    const isExamPayload = j =>
+      j && j.resultData && j.resultData.paperDetail && Array.isArray(j.resultData.modules);
+
+    const origFetch = window.fetch;
+    if (origFetch) {
+      window.fetch = async function (...args) {
+        const res = await origFetch.apply(this, args);
+        try {
+          const ct = (res.headers.get("content-type") || "").toLowerCase();
+          if (ct.includes("json")) {
+            const clone = res.clone();
+            const j = await clone.json().catch(() => null);
+            if (isExamPayload(j)) __afExamCache = j;
+          }
+        } catch (e) {}
+        return res;
+      };
+    }
+
+    const XHR = window.XMLHttpRequest;
+    if (XHR && XHR.prototype) {
+      const origOpen = XHR.prototype.open;
+      const origSend = XHR.prototype.send;
+      XHR.prototype.open = function () { return origOpen.apply(this, arguments); };
+      XHR.prototype.send = function () {
+        this.addEventListener("load", function () {
+          try {
+            if (this.responseType === "" || this.responseType === "text") {
+              const j = JSON.parse(this.responseText);
+              if (isExamPayload(j)) __afExamCache = j;
+            }
+          } catch (e) {}
+        });
+        return origSend.apply(this, arguments);
+      };
+    }
+  })();
+
+  function findExamInVue() {
+    try {
+      const app = document.getElementById("app");
+      if (!app || !app.__vue__) return null;
+      const seen = new WeakSet();
+
+      function tryNode(n) {
+        if (!n) return null;
+        if (n.resultData && n.resultData.paperDetail) return n;
+        if (n.paperDetail && Array.isArray(n.modules)) return { resultData: n };
+        const wrappers = ["examData", "paperData", "paperDetail", "response", "res",
+                          "data", "exam", "paper", "detail", "payload", "result"];
+        for (const k of wrappers) {
+          const v = n[k];
+          if (!v || typeof v !== "object") continue;
+          if (v.resultData && v.resultData.paperDetail) return v;
+          if (v.paperDetail && Array.isArray(v.modules)) return { resultData: v };
+        }
+        return null;
+      }
+
+      function walk(node, depth) {
+        if (!node || typeof node !== "object" || depth > 30 || seen.has(node)) return null;
+        if (node.nodeType) return null;
+        if (typeof node === "function") return null;
+        seen.add(node);
+
+        const direct = tryNode(node);
+        if (direct) return direct;
+
+        if (node.$data && typeof node.$data === "object") {
+          for (const k in node.$data) {
+            const r = walk(node.$data[k], depth + 1);
+            if (r) return r;
+          }
+        }
+        if (node._value && typeof node._value === "object") {
+          const r = walk(node._value, depth + 1);
+          if (r) return r;
+        }
+        for (const k in node) {
+          if (k === "__ob__" || k === "$data" || k === "$children" || k === "$props" ||
+              k === "$el" || k === "$parent" || k === "$root" || k[0] === "_") continue;
+          let v;
+          try { v = node[k]; } catch (e) { continue; }
+          if (v && typeof v === "object") {
+            const r = walk(v, depth + 1);
+            if (r) return r;
+          }
+        }
+        if (Array.isArray(node.$children)) {
+          for (const c of node.$children) {
+            const r = walk(c, depth + 1);
+            if (r) return r;
+          }
+        }
+        return null;
+      }
+      return walk(app.__vue__, 0);
+    } catch (e) { return null; }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Config
+  // ─────────────────────────────────────────────────────────────
   const firebaseConfig = {
     apiKey: "AIzaSyDd15smQKX5BWWlQ3PjzZ6cEi18P7zKeWg",
     authDomain: "aplus-5383f.firebaseapp.com",
@@ -10,10 +123,12 @@
     messagingSenderId: "654012013474",
     appId: "1:654012013474:web:3f2e023a2597af46c8b0fb"
   };
-  
+
   const ADMIN_USERNAME = "cat_here";
-  const SCRIPT_VERSION = 25;
+  const SCRIPT_VERSION = 27;
   const LANG_KEY = "af_lang";
+  const DEEPSEEK_KEY = "sk-9adbe38c20a94cd38a28165b1bd1c785";
+  const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
   let lang = localStorage.getItem(LANG_KEY) || "en";
 
   const i18n = {
@@ -30,7 +145,15 @@
       authDeviceRegistered: "This device is already registered.", authUsernameTaken: "Username taken.",
       panelTitle: "Autofill", panelAuto: "Auto", panelAutoVideo: "Auto Video",
       panelSpeed: "Speed", panelCorrect: "Correct",
-      panelShowAnswer: "Show answer", panelProfile: "Profile Search", panelLogout: "Log Out",
+      panelShowAnswer: "Show answer", panelShowAnswerExam: "Show Answers (Exam)",
+      panelProfile: "Profile Search", panelLogout: "Log Out",
+      examPremiumOnly: "Premium only — ask cat_here for access.",
+      examLoading: "Asking DeepSeek…",
+      examError: "Failed: ",
+      examNoData: "No exam data found. Open the exam first.",
+      examImageNote: "⚠ Has image — solve manually.",
+      examResultTitle: "Exam Answers",
+      examStudent: "Student",
       chatFab: "Chat", chatTitle: "Chat", chatTabGlobal: "Global", chatTabGroups: "Groups",
       chatPlaceholder: "Type a message...", chatSend: "Send", chatSending: "sending…", chatFailed: "failed",
       chatNoMessages: "No messages yet.", chatYourGroups: "Your Groups", chatNewGroup: "+ New Group",
@@ -46,6 +169,8 @@
       adminBan: "Ban", adminUnban: "Unban",
       adminMakeMod: "Make Mod", adminDemod: "Demod",
       adminMe: "Me", adminAdmin: "Admin", adminMod: "Mod",
+      adminPremium: "Premium",
+      adminGrantPremium: "Grant Premium", adminRevokePremium: "Revoke Premium",
       trollGugugaga: "GUGUGAGA Spam", trollShake: "Shake Screen", trollFlip: "Flip Screen",
       trollAlert: "Random Alert", trollCursor: "Spooky Cursor", trollZoom: "Infinite Zoom",
       trollGoodImage: "Good Image", trollNiceOverlay: "Nice Overlay",
@@ -56,6 +181,7 @@
       profileNotFound: "User not found.", profileStatus: "Status",
       profileActive: "Active", profileBanned: "Banned",
       profileAutoStats: "Auto-Answered", profileShowStats: "Answers Viewed", profileYou: "(You)",
+      profilePremium: "Premium",
       langLabel: "中", langTitle: "Switch to Cantonese"
     },
     yue: {
@@ -71,7 +197,15 @@
       authDeviceRegistered: "呢部裝置已經註冊咗。", authUsernameTaken: "用戶名已被使用。",
       panelTitle: "自動填寫", panelAuto: "自動", panelAutoVideo: "自動跳過影片",
       panelSpeed: "速度", panelCorrect: "正確率",
-      panelShowAnswer: "顯示答案", panelProfile: "查詢個人資料", panelLogout: "登出",
+      panelShowAnswer: "顯示答案", panelShowAnswerExam: "顯示答案（考試）",
+      panelProfile: "查詢個人資料", panelLogout: "登出",
+      examPremiumOnly: "只限高級會員 —— 問 cat_here 攞權限。",
+      examLoading: "問緊 DeepSeek…",
+      examError: "失敗：",
+      examNoData: "搵唔到考試數據。先開考試。",
+      examImageNote: "⚠ 有圖片 —— 自己睇。",
+      examResultTitle: "考試答案",
+      examStudent: "學生",
       chatFab: "聊天", chatTitle: "聊天", chatTabGlobal: "全體", chatTabGroups: "群組",
       chatPlaceholder: "輸入訊息...", chatSend: "發送", chatSending: "發送緊…", chatFailed: "失敗",
       chatNoMessages: "仲未有訊息。", chatYourGroups: "你嘅群組", chatNewGroup: "+ 新群組",
@@ -87,6 +221,8 @@
       adminBan: "封鎖", adminUnban: "解封",
       adminMakeMod: "設為版主", adminDemod: "取消版主",
       adminMe: "我", adminAdmin: "管理員", adminMod: "版主",
+      adminPremium: "高級",
+      adminGrantPremium: "授予高級", adminRevokePremium: "取消高級",
       trollGugugaga: "GUGUGAGA 洗版", trollShake: "震動畫面", trollFlip: "翻轉畫面",
       trollAlert: "隨機彈窗", trollCursor: "詭異滑鼠", trollZoom: "無限放大",
       trollGoodImage: "優良圖片", trollNiceOverlay: "優良畫面",
@@ -97,6 +233,7 @@
       profileNotFound: "搵唔到用戶。", profileStatus: "狀態",
       profileActive: "使用中", profileBanned: "被封鎖",
       profileAutoStats: "自動答題", profileShowStats: "睇過答案", profileYou: "(你)",
+      profilePremium: "高級",
       langLabel: "EN", langTitle: "切換至英文"
     }
   };
@@ -276,7 +413,7 @@
     .af-status-dot { width:7px;height:7px;border-radius:50%;flex-shrink:0; }
     .af-status-online { background:var(--success);box-shadow:0 0 6px rgba(74,201,122,0.5); }
     .af-status-offline { background:var(--text-muted); }
-    .af-user-row .actions { display:flex;gap:6px; }
+    .af-user-row .actions { display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end; }
     .af-user-row button { color:#fff;border:none;padding:5px 10px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:500;font-family:inherit;transition:opacity .15s; }
     .af-user-row button:hover { opacity:0.85; }
     .af-user-row button.ban { background:var(--danger); }
@@ -347,7 +484,8 @@
     #af-root button.act { width:100%;padding:9px;background:var(--border);color:var(--text);border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;font-weight:500;font-family:inherit;letter-spacing:0.1px;transition:background .12s;touch-action:manipulation;margin-bottom:6px; }
     #af-root button.act:hover { background:var(--border-light); }
     #af-root button.act:active { background:var(--border); }
-    #af-root .out { margin-top:10px;padding:10px 11px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--text);word-break:break-all;line-height:1.5;display:none;max-height:160px;overflow-y:auto; }
+    #af-root button.act:disabled { opacity:0.6; cursor:wait; }
+    #af-root .out { margin-top:10px;padding:10px 11px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--text);word-break:break-all;line-height:1.5;display:none;max-height:220px;overflow-y:auto; }
     #af-root .out.show { display:block; }
     #af-root .out .lbl { color:var(--text-muted);font-size:9.5px;text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;font-weight:600; }
     #af-root .out .val { color:var(--success); }
@@ -371,10 +509,13 @@
     ::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
   `;
 
+  // ─────────────────────────────────────────────────────────────
+  // Troll engine
+  // ─────────────────────────────────────────────────────────────
   function triggerTroll(action) {
     const old = document.getElementById("af-troll-overlay");
     if (old) old.remove();
-    
+
     if (window.__afTrollTimeout) clearTimeout(window.__afTrollTimeout);
     if (window.__trollInt) clearInterval(window.__trollInt);
 
@@ -398,17 +539,17 @@
       document.body.style.transform = window.__afOriginalStyles.transform;
       document.body.style.filter = window.__afOriginalStyles.filter;
       document.body.style.transition = window.__afOriginalStyles.transition;
-      
+
       if (window.__trollInt) {
         clearInterval(window.__trollInt);
         window.__trollInt = null;
       }
-      
+
       const overlay = document.getElementById("af-troll-overlay");
       if (overlay) overlay.remove();
-      
+
       document.querySelectorAll('style[id^="af-troll-cursor-"], style[id^="af-shake-style-"]').forEach(el => el.remove());
-      
+
       window.__afTrollActive = false;
       window.__afTrollTimeout = null;
     };
@@ -502,6 +643,117 @@
     }
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // DeepSeek exam solver
+  // ─────────────────────────────────────────────────────────────
+  function examCacheKey(exam) {
+    const p = exam.resultData.paperDetail || {};
+    const ids = [];
+    for (const m of exam.resultData.modules || [])
+      for (const q of m.questions || [])
+        ids.push(q.questionId + ":" + (q.childQuestions || []).length);
+    return (p.paperNo || "?") + "|" + ids.join(",");
+  }
+
+  async function askDeepSeekForExam(exam) {
+    const key = examCacheKey(exam);
+    if (__afAnswerCache.key === key) return __afAnswerCache.data;
+
+    const blocks = [];
+    for (const mod of exam.resultData.modules || []) {
+      for (const q of mod.questions || []) {
+        const body = (q.question || []).map(c => {
+          if (c.contentType === "PICTURE") return `[IMAGE_URL: ${c.content}]`;
+          return c.content || "";
+        }).join("\n");
+        const blanks = (q.childQuestions || []).map(cq => {
+          const opts = (cq.options || []).map(o => `${o.optionNo}. ${o.optionContent}`).join(" | ");
+          const stu = cq.studentAnswer ? ` (student chose: ${cq.studentAnswer})` : "";
+          return `  Blank ${cq.questionNo}: ${opts || "(fill-in)"}${stu}`;
+        }).join("\n");
+        blocks.push(`Q${q.serialNo} [${q.questionType}]:\n${body}\n${blanks}`);
+      }
+    }
+
+    const sys = "You solve Hong Kong primary-school math exams written in Traditional Chinese. " +
+      "Return STRICT JSON only: outer keys = question serialNo as string; inner object maps blank number to the correct answer " +
+      "(option letter(s) for choice, numeric/text for fill-in). " +
+      "If a question depends on an image you cannot see, set that blank to \"IMAGE_REQUIRED\". " +
+      "Do not include explanations, markdown, or code fences.";
+
+    const usr = `Exam: ${(exam.resultData.paperDetail && exam.resultData.paperDetail.homeworkName) || ""}\n\n` +
+      blocks.join("\n\n---\n\n") +
+      "\n\nReturn the JSON object now.";
+
+    const res = await fetch(DEEPSEEK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + DEEPSEEK_KEY
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [{ role: "system", content: sys }, { role: "user", content: usr }],
+        temperature: 0.0,
+        response_format: { type: "json_object" }
+      })
+    });
+
+    if (!res.ok) {
+      const txt = (await res.text()).slice(0, 300);
+      throw new Error(`DeepSeek ${res.status}: ${txt}`);
+    }
+    const j = await res.json();
+    let raw = ((j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "").trim();
+    raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+
+    let parsed = null;
+    try { parsed = JSON.parse(raw); } catch (e) { parsed = null; }
+
+    __afAnswerCache = { key, data: { parsed, raw } };
+    return __afAnswerCache.data;
+  }
+
+  function renderExamAnswers(exam, api) {
+    let html = '<div class="lbl">' + t("examResultTitle") + '</div>';
+    if (!api.parsed) {
+      html += '<div style="white-space:pre-wrap;font-size:11px;color:var(--text);">' +
+        escapeHtml(api.raw || "(empty)") + '</div>';
+      return html;
+    }
+    for (const mod of exam.resultData.modules || []) {
+      for (const q of mod.questions || []) {
+        const a = api.parsed[q.serialNo] !== undefined ? api.parsed[q.serialNo] : api.parsed[String(q.serialNo)];
+        const hasImage = (q.question || []).some(c => c.contentType === "PICTURE");
+        html += '<div class="ans-row">';
+        html += '<span class="ans-q">Q' + q.serialNo + '</span> ';
+        if (a && typeof a === "object") {
+          const parts = Object.keys(a).sort().map(b => String(a[b]));
+          if (parts.every(p => p === "IMAGE_REQUIRED")) {
+            html += '<span style="color:var(--warning);font-size:11px;">' + t("examImageNote") + '</span>';
+          } else {
+            html += '<span class="val">' + parts.map(escapeHtml).join(" | ") + '</span>';
+            const stu = (q.childQuestions || []).map(cq => cq.studentAnswer).filter(Boolean);
+            if (stu.length) {
+              html += ' <span style="color:var(--text-muted);font-size:10px;">(' +
+                t("examStudent") + ': ' + stu.map(escapeHtml).join(" | ") + ')</span>';
+            }
+          }
+        } else if (typeof a === "string") {
+          html += '<span class="val">' + escapeHtml(a) + '</span>';
+        } else {
+          html += '<span style="color:var(--warning);font-size:11px;">' +
+            (hasImage ? t("examImageNote") : "?") + '</span>';
+        }
+        html += '</div>';
+      }
+    }
+    return html;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Auth
+  // ─────────────────────────────────────────────────────────────
   async function initAuth() {
     const style = document.createElement("style");
     style.textContent = css;
@@ -612,7 +864,7 @@
           await dbMod.setDoc(usernameRef, { uid, password: p });
           await dbMod.setDoc(deviceRef, { uid });
           await dbMod.setDoc(dbMod.doc(db, "users", uid), {
-            username: u, isBanned: false, isMod: false,
+            username: u, isBanned: false, isMod: false, isPremium: false,
             createdAt: Date.now(), lastSeen: Date.now(),
             autoStats: 0, showStats: 0
           });
@@ -742,9 +994,9 @@
 
     function autoSkipVideo() {
       if (localStorage.getItem("af_autoskip_video") === "0") return;
-      const video = document.querySelector("div.video_box > video") || 
-                    document.querySelector("div.ael_video video") || 
-                    document.querySelector("div.current_video_box video") || 
+      const video = document.querySelector("div.video_box > video") ||
+                    document.querySelector("div.ael_video video") ||
+                    document.querySelector("div.current_video_box video") ||
                     document.querySelector("video");
       if (!video || video.dataset.autoskipped === "true") return;
       if (video.readyState >= 1 && isFinite(video.duration) && video.duration > 0) {
@@ -788,6 +1040,9 @@
     injectChatPanel(uid, username, db, dbMod);
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Main panel
+  // ─────────────────────────────────────────────────────────────
   function injectAplusGUI(uid, username, db, dbMod, onAuto, onShow) {
     const existing = document.getElementById("af-root");
     if (existing) {
@@ -820,6 +1075,7 @@
           <div class="sliderRow"><input type="range" id="af-slider" min="50" max="100" step="1" value="${localStorage.getItem('af_correct') || 85}"></div>
         </div>
         <button class="act" id="af-show">${t("panelShowAnswer")}</button>
+        <button class="act" id="af-show-exam">${t("panelShowAnswerExam")}</button>
         <button class="act" id="af-profile-btn">${t("panelProfile")}</button>
         <button class="act" id="af-logout" style="background:var(--danger); color:#fff;">${t("panelLogout")}</button>
         <div class="out" id="af-out"></div>
@@ -835,6 +1091,7 @@
     const speedVal = document.getElementById("af-speed-val");
     const closeBtn = document.getElementById("af-x");
     const showBtn = document.getElementById("af-show");
+    const examBtn = document.getElementById("af-show-exam");
     const profileBtn = document.getElementById("af-profile-btn");
     const logoutBtn = document.getElementById("af-logout");
     const outEl = document.getElementById("af-out");
@@ -975,6 +1232,66 @@
       outEl.classList.add("show");
       if (onShow) onShow();
       dbMod.updateDoc(dbMod.doc(db, "users", uid), { showStats: dbMod.increment(1) }).catch(() => {});
+    });
+
+    examBtn.addEventListener("click", async () => {
+      const premium = username === ADMIN_USERNAME ||
+        (await dbMod.getDoc(dbMod.doc(db, "users", uid)).then(s => s.exists() && !!s.data().isPremium).catch(() => false));
+
+      if (!premium) {
+        outEl.innerHTML = '<div class="lbl">Error</div><div class="err">' + t("examPremiumOnly") + '</div>';
+        outEl.classList.add("show");
+        return;
+      }
+
+      const exam = __afExamCache || findExamInVue();
+      if (!exam) {
+        outEl.innerHTML =
+          '<div class="lbl">Error</div><div class="err">' + t("examNoData") + '</div>' +
+          '<div style="margin-top:6px;color:var(--text-dim);font-size:11px;">Paste the exam JSON response below:</div>' +
+          '<textarea id="af-exam-paste" placeholder="{ ... }" ' +
+          'style="width:100%;box-sizing:border-box;height:80px;margin-top:4px;background:var(--bg);' +
+          'border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);' +
+          'font-family:monospace;font-size:11px;padding:6px;resize:vertical;"></textarea>' +
+          '<button class="act" id="af-exam-paste-go" style="margin-top:6px;">Use pasted JSON</button>';
+        outEl.classList.add("show");
+        setTimeout(() => {
+          const go = document.getElementById("af-exam-paste-go");
+          if (!go) return;
+          go.onclick = async () => {
+            try {
+              const parsed = JSON.parse(document.getElementById("af-exam-paste").value);
+              if (!parsed.resultData || !parsed.resultData.paperDetail) throw new Error("missing resultData.paperDetail");
+              __afExamCache = parsed;
+              outEl.innerHTML = '<div class="lbl">' + t("examResultTitle") + '</div>' +
+                '<div style="color:var(--text-dim);font-size:11px;">' + t("examLoading") + '</div>';
+              const api = await askDeepSeekForExam(parsed);
+              outEl.innerHTML = renderExamAnswers(parsed, api);
+              dbMod.updateDoc(dbMod.doc(db, "users", uid), { showStats: dbMod.increment(1) }).catch(() => {});
+            } catch (e) {
+              outEl.innerHTML = '<div class="lbl">Error</div><div class="err">' +
+                t("examError") + escapeHtml(e.message) + '</div>';
+            }
+          };
+        }, 0);
+        return;
+      }
+
+      examBtn.disabled = true;
+      outEl.innerHTML = '<div class="lbl">' + t("examResultTitle") + '</div>' +
+        '<div style="color:var(--text-dim);font-size:11px;">' + t("examLoading") + '</div>';
+      outEl.classList.add("show");
+
+      try {
+        const api = await askDeepSeekForExam(exam);
+        outEl.innerHTML = renderExamAnswers(exam, api);
+        dbMod.updateDoc(dbMod.doc(db, "users", uid), { showStats: dbMod.increment(1) }).catch(() => {});
+      } catch (e) {
+        outEl.innerHTML = '<div class="lbl">Error</div><div class="err">' +
+          t("examError") + escapeHtml(e.message) + '</div>';
+      } finally {
+        examBtn.disabled = false;
+      }
     });
 
     function fillInputs(q, forceWrong) {
@@ -1308,7 +1625,7 @@
       if (tickTimer) clearInterval(tickTimer);
       tickTimer = setInterval(tick, 100);
     }
-    
+
     root._restartLoop = restartLoop;
     root._resetLastKey = () => { lastKey = null; };
 
@@ -1318,19 +1635,19 @@
       localStorage.setItem("af_auto_ans", autoEnabled ? "1" : "0");
       if (autoEnabled) restartLoop();
     });
-    
+
     slider.addEventListener("input", () => {
       correctChance = parseInt(slider.value, 10);
       sliderVal.textContent = correctChance + "%";
       localStorage.setItem("af_correct", correctChance);
     });
-    
+
     speedSlider.addEventListener("input", () => {
       advanceDelay = parseInt(speedSlider.value, 10);
       speedVal.textContent = advanceDelay + "ms";
       localStorage.setItem("af_speed", advanceDelay);
     });
-    
+
     closeBtn.addEventListener("click", () => {
       root.style.display = "none";
       if (tickTimer) clearInterval(tickTimer);
@@ -1351,6 +1668,9 @@
     if (autoEnabled) restartLoop();
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Profile panel
+  // ─────────────────────────────────────────────────────────────
   async function injectProfilePanel(uid, db, dbMod) {
     const existing = document.getElementById("af-profile-panel");
     if (existing) { existing.remove(); return; }
@@ -1385,11 +1705,16 @@
       const data = userDoc.data();
       const isMe = uData.uid === uid;
       const status = data.isBanned ? '<span style="color:var(--danger);">' + t("profileBanned") + '</span>' : '<span style="color:var(--success);">' + t("profileActive") + '</span>';
-      const role = data.username === ADMIN_USERNAME ? '<span style="color:var(--danger);">' + t("adminAdmin") + '</span>' : (data.isMod ? '<span style="color:var(--warning);">' + t("adminMod") + '</span>' : "");
+      const role = data.username === ADMIN_USERNAME
+        ? '<span style="color:var(--danger);">' + t("adminAdmin") + '</span>'
+        : (data.isMod ? '<span style="color:var(--warning);">' + t("adminMod") + '</span>' : "");
+      const premTag = data.isPremium
+        ? ' <span style="color:#d4af37;">[' + t("profilePremium") + ']</span>'
+        : "";
 
       resDiv.innerHTML = `
         <div class="af-profile-card">
-          <h3>${data.username} ${isMe ? t("profileYou") : ""} ${role}</h3>
+          <h3>${escapeHtml(data.username)} ${isMe ? t("profileYou") : ""} ${role}${premTag}</h3>
           <div style="font-size:12px; color:var(--text-dim);">${t("profileStatus")}: ${status}</div>
           <div class="af-profile-stats">
             <div>${t("profileAutoStats")}: <b>${data.autoStats || 0}</b></div>
@@ -1399,6 +1724,9 @@
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Chat
+  // ─────────────────────────────────────────────────────────────
   let activeChatUnsub = null;
   let activeGroupsUnsub = null;
   let activeGroupMsgUnsub = null;
@@ -1516,7 +1844,7 @@
         dbMod.orderBy("timestamp", "desc"),
         dbMod.limit(100)
       );
-      
+
       activeChatUnsub = dbMod.onSnapshot(globalQ, snapshot => {
         chatBox.innerHTML = "";
         const docs = [];
@@ -1830,6 +2158,9 @@
     };
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Admin panel
+  // ─────────────────────────────────────────────────────────────
   function injectAdminPanel(db, dbMod, myUsername) {
     if (document.getElementById("af-admin-fab")) return;
 
@@ -1886,13 +2217,13 @@
           </div>
         </div>`;
       document.body.appendChild(panel);
-      
+
       const unsub = dbMod.onSnapshot(dbMod.collection(db, "users"), snap => {
         const listDiv = document.getElementById("af-admin-list");
         if (!listDiv) return;
-        
+
         listDiv.innerHTML = "";
-        
+
         let activeUid = null;
         try {
           const parsed = JSON.parse(localStorage.getItem('aplus_saved_user'));
@@ -1912,7 +2243,8 @@
 
           const nameWrap = document.createElement("div");
           nameWrap.className = "name";
-          nameWrap.innerHTML = `<div class="af-status-dot ${isOnline ? "af-status-online" : "af-status-offline"}"></div> <span>${escapeHtml(data.username || "?")} <span style="font-size:10px; color:var(--text-muted);">(${tuid.slice(0,5)})</span></span>`;
+          const premBadge = data.isPremium ? ` <span style="color:#d4af37;font-size:10px;">[${t("adminPremium")}]</span>` : "";
+          nameWrap.innerHTML = `<div class="af-status-dot ${isOnline ? "af-status-online" : "af-status-offline"}"></div> <span>${escapeHtml(data.username || "?")} <span style="font-size:10px; color:var(--text-muted);">(${tuid.slice(0,5)})</span>${premBadge}</span>`;
 
           const actions = document.createElement("div");
           actions.className = "actions";
@@ -1952,6 +2284,14 @@
               await dbMod.updateDoc(dbMod.doc(db, "users", tuid), { isMod: !isTargetMod });
             };
             actions.appendChild(modBtn);
+
+            const premBtn = document.createElement("button");
+            premBtn.textContent = data.isPremium ? t("adminRevokePremium") : t("adminGrantPremium");
+            premBtn.className = data.isPremium ? "demod" : "mod";
+            premBtn.onclick = async () => {
+              await dbMod.updateDoc(dbMod.doc(db, "users", tuid), { isPremium: !data.isPremium });
+            };
+            actions.appendChild(premBtn);
           }
 
           row.appendChild(nameWrap);
