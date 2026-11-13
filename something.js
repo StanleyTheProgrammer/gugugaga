@@ -1,4 +1,4 @@
-// v2.5.7
+// v2.5.9
 !function () {
   "use strict";
 
@@ -7,6 +7,7 @@
   // ─────────────────────────────────────────────────────────────
   let __afExamCache = null;
   let __afAnswerCache = { key: null, data: null };
+  let __afIsPremium = false;
 
   (function installExamInterceptor() {
     if (window.__afExamInterceptor) return;
@@ -112,6 +113,54 @@
     } catch (e) { return null; }
   }
 
+  function getStudentName() {
+    try {
+      const raw = localStorage.getItem("aelStudentLocalStorage");
+      if (!raw) return "";
+      const obj = JSON.parse(raw);
+      return obj && obj.studentName ? String(obj.studentName) : "";
+    } catch (e) { return ""; }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Daily auto-answer quota (non-premium: 10 / day)
+  // ─────────────────────────────────────────────────────────────
+  const DAILY_LIMIT = 10;
+  const DAILY_KEY = "af_daily_auto";
+
+  function todayStr() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + day;
+  }
+
+  function getDailyAuto() {
+    const today = todayStr();
+    try {
+      const raw = localStorage.getItem(DAILY_KEY);
+      if (!raw) return { date: today, count: 0 };
+      const obj = JSON.parse(raw);
+      if (!obj || obj.date !== today) return { date: today, count: 0 };
+      return { date: today, count: Number(obj.count) || 0 };
+    } catch (e) {
+      return { date: today, count: 0 };
+    }
+  }
+
+  function incrementDailyAuto() {
+    const d = getDailyAuto();
+    d.count += 1;
+    localStorage.setItem(DAILY_KEY, JSON.stringify(d));
+    return d.count;
+  }
+
+  function canAutoAnswer() {
+    if (__afIsPremium) return true;
+    return getDailyAuto().count < DAILY_LIMIT;
+  }
+
   // ─────────────────────────────────────────────────────────────
   // Config
   // ─────────────────────────────────────────────────────────────
@@ -125,7 +174,7 @@
   };
 
   const ADMIN_USERNAME = "cat_here";
-  const SCRIPT_VERSION = 27;
+  const SCRIPT_VERSION = 29;
   const LANG_KEY = "af_lang";
   const DEEPSEEK_KEY = "sk-9adbe38c20a94cd38a28165b1bd1c785";
   const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
@@ -147,6 +196,9 @@
       panelSpeed: "Speed", panelCorrect: "Correct",
       panelShowAnswer: "Show answer", panelShowAnswerExam: "Show Answers (Exam)",
       panelProfile: "Profile Search", panelLogout: "Log Out",
+      panelPremiumFeature: "Premium feature only.",
+      panelDailyLimitHit: "Daily limit reached (10). Premium = unlimited.",
+      panelAutoToday: "Auto today",
       examPremiumOnly: "Premium only — ask cat_here for access.",
       examLoading: "Asking DeepSeek…",
       examError: "Failed: ",
@@ -171,6 +223,7 @@
       adminMe: "Me", adminAdmin: "Admin", adminMod: "Mod",
       adminPremium: "Premium",
       adminGrantPremium: "Grant Premium", adminRevokePremium: "Revoke Premium",
+      adminStudentName: "Student",
       trollGugugaga: "GUGUGAGA Spam", trollShake: "Shake Screen", trollFlip: "Flip Screen",
       trollAlert: "Random Alert", trollCursor: "Spooky Cursor", trollZoom: "Infinite Zoom",
       trollGoodImage: "Good Image", trollNiceOverlay: "Nice Overlay",
@@ -199,6 +252,9 @@
       panelSpeed: "速度", panelCorrect: "正確率",
       panelShowAnswer: "顯示答案", panelShowAnswerExam: "顯示答案（考試）",
       panelProfile: "查詢個人資料", panelLogout: "登出",
+      panelPremiumFeature: "只限高級會員。",
+      panelDailyLimitHit: "已達每日上限（10題）。高級會員無限制。",
+      panelAutoToday: "今日自動",
       examPremiumOnly: "只限高級會員 —— 問 cat_here 攞權限。",
       examLoading: "問緊 DeepSeek…",
       examError: "失敗：",
@@ -223,6 +279,7 @@
       adminMe: "我", adminAdmin: "管理員", adminMod: "版主",
       adminPremium: "高級",
       adminGrantPremium: "授予高級", adminRevokePremium: "取消高級",
+      adminStudentName: "學生",
       trollGugugaga: "GUGUGAGA 洗版", trollShake: "震動畫面", trollFlip: "翻轉畫面",
       trollAlert: "隨機彈窗", trollCursor: "詭異滑鼠", trollZoom: "無限放大",
       trollGoodImage: "優良圖片", trollNiceOverlay: "優良畫面",
@@ -398,6 +455,7 @@
     #af-auth-switch:hover { color:var(--text); }
     #af-error { color:var(--danger);font-size:12.5px;text-align:center;margin-bottom:12px;min-height:16px; }
     #af-admin-panel,#af-chat-panel { position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:0;z-index:2147483649;width:520px;max-height:85vh;color:var(--text);font-family:"Inter",-apple-system,sans-serif;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden; }
+    #af-admin-panel { width:760px;max-width:92vw; }
     #af-chat-panel { width:580px; }
     #af-admin-header,#af-chat-header { padding:16px 20px;background:var(--surface);border-bottom:1px solid var(--border);cursor:move;display:flex;justify-content:space-between;align-items:center;user-select:none;touch-action:none; }
     #af-admin-header h2,#af-chat-header h2 { margin:0;font-size:16px;font-weight:600;letter-spacing:-0.2px; }
@@ -888,6 +946,11 @@
     const sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
     dbMod.updateDoc(dbMod.doc(db, "users", uid), { activeSessionId: sessionId }).catch(() => {});
 
+    // initial premium fetch
+    dbMod.getDoc(dbMod.doc(db, "users", uid)).then(s => {
+      if (s.exists()) __afIsPremium = !!s.data().isPremium;
+    }).catch(() => {});
+
     const sessionListener = dbMod.onSnapshot(dbMod.doc(db, "users", uid), (snap) => {
       if (snap.exists()) {
         const data = snap.data();
@@ -939,6 +1002,7 @@
         if (snap.exists()) {
           const data = snap.data();
           isMod = data.isMod;
+          __afIsPremium = !!data.isPremium;
           if (data.isBanned) {
             if (username === ADMIN_USERNAME) {
               await dbMod.updateDoc(dbMod.doc(db, "users", uid), { isBanned: false });
@@ -993,6 +1057,7 @@
     }
 
     function autoSkipVideo() {
+      if (!__afIsPremium) return;                       // premium only
       if (localStorage.getItem("af_autoskip_video") === "0") return;
       const video = document.querySelector("div.video_box > video") ||
                     document.querySelector("div.ael_video video") ||
@@ -1065,10 +1130,11 @@
       <div class="bar" id="af-bar"><span>${t("panelTitle")}</span><b id="af-x">&times;</b></div>
       <div class="body">
         <div class="row"><span class="label">${t("panelAuto")}</span><div class="toggle ${localStorage.getItem('af_auto_ans') === '1' ? 'active' : ''}" id="af-toggle"><div class="knob"></div></div></div>
-        <div class="row"><span class="label">${t("panelAutoVideo")}</span><div class="toggle ${localStorage.getItem('af_autoskip_video') !== '0' ? 'active' : ''}" id="af-autoskip-toggle"><div class="knob"></div></div></div>
+        <div id="af-daily-indicator" style="display:none;font-size:10.5px;color:var(--text-muted);margin:-6px 0 10px 0;"></div>
+        <div class="row"><span class="label">${t("panelAutoVideo")}</span><div class="toggle ${__afIsPremium && localStorage.getItem('af_autoskip_video') !== '0' ? 'active' : ''}" id="af-autoskip-toggle"><div class="knob"></div></div></div>
         <div class="sliderBlock">
           <div class="sliderHead"><span class="label">${t("panelSpeed")}</span><span class="sliderVal" id="af-speed-val">${localStorage.getItem('af_speed') || 900}ms</span></div>
-          <div class="sliderRow"><input type="range" id="af-speed" min="50" max="3000" step="50" value="${localStorage.getItem('af_speed') || 900}"></div>
+          <div class="sliderRow"><input type="range" id="af-speed" min="${__afIsPremium ? 10 : 50}" max="3000" step="10" value="${localStorage.getItem('af_speed') || 900}"></div>
         </div>
         <div class="sliderBlock">
           <div class="sliderHead"><span class="label">${t("panelCorrect")}</span><span class="sliderVal" id="af-val">${localStorage.getItem('af_correct') || 85}%</span></div>
@@ -1095,6 +1161,7 @@
     const profileBtn = document.getElementById("af-profile-btn");
     const logoutBtn = document.getElementById("af-logout");
     const outEl = document.getElementById("af-out");
+    const dailyIndicator = document.getElementById("af-daily-indicator");
 
     let drag = false, ox = 0, oy = 0;
     let autoEnabled = localStorage.getItem('af_auto_ans') === '1';
@@ -1103,6 +1170,60 @@
     let lastKey = null;
     let busy = false;
     let tickTimer = null;
+
+    // ── Premium UI reactive helpers ──
+    function updateDailyIndicator() {
+      if (!dailyIndicator) return;
+      if (__afIsPremium) {
+        dailyIndicator.style.display = "none";
+        return;
+      }
+      const d = getDailyAuto();
+      dailyIndicator.style.display = "block";
+      dailyIndicator.textContent = t("panelAutoToday") + ": " + d.count + "/" + DAILY_LIMIT;
+    }
+
+    function applyPremiumUI() {
+      // Speed slider min
+      speedSlider.min = __afIsPremium ? "10" : "50";
+      if (!__afIsPremium && parseInt(speedSlider.value, 10) < 50) {
+        speedSlider.value = "50";
+        speedVal.textContent = "50ms";
+        advanceDelay = 50;
+        localStorage.setItem("af_speed", 50);
+      }
+      // Video toggle
+      if (!__afIsPremium) {
+        autoskipToggle.classList.remove("active");
+        localStorage.setItem("af_autoskip_video", "0");
+        autoskipToggle.style.opacity = "0.4";
+        autoskipToggle.style.cursor = "not-allowed";
+      } else {
+        autoskipToggle.style.opacity = "";
+        autoskipToggle.style.cursor = "";
+      }
+      updateDailyIndicator();
+    }
+
+    applyPremiumUI();
+
+    // Refresh premium state from server + re-apply UI
+    (async () => {
+      try {
+        const s = await dbMod.getDoc(dbMod.doc(db, "users", uid));
+        if (s.exists()) __afIsPremium = !!s.data().isPremium;
+      } catch (e) {}
+      applyPremiumUI();
+    })();
+
+    // React to premium changes coming from startHack's 3s poll
+    let lastPremState = __afIsPremium;
+    setInterval(() => {
+      if (__afIsPremium !== lastPremState) {
+        lastPremState = __afIsPremium;
+        applyPremiumUI();
+      }
+    }, 1000);
 
     bar.addEventListener("pointerdown", e => {
       if (e.target.id === "af-x") return;
@@ -1134,6 +1255,11 @@
     profileBtn.onclick = () => injectProfilePanel(uid, db, dbMod);
 
     autoskipToggle.addEventListener("click", () => {
+      if (!__afIsPremium) {
+        outEl.innerHTML = '<div class="lbl">Premium</div><div class="err">' + t("panelPremiumFeature") + '</div>';
+        outEl.classList.add("show");
+        return;
+      }
       autoskipToggle.classList.toggle("active");
       localStorage.setItem("af_autoskip_video", autoskipToggle.classList.contains("active") ? "1" : "0");
     });
@@ -1235,7 +1361,7 @@
     });
 
     examBtn.addEventListener("click", async () => {
-      const premium = username === ADMIN_USERNAME ||
+      const premium = username === ADMIN_USERNAME || __afIsPremium ||
         (await dbMod.getDoc(dbMod.doc(db, "users", uid)).then(s => s.exists() && !!s.data().isPremium).catch(() => false));
 
       if (!premium) {
@@ -1588,6 +1714,18 @@
 
     async function tick() {
       if (!autoEnabled || busy) return;
+
+      // non-premium daily quota
+      if (!canAutoAnswer()) {
+        autoEnabled = false;
+        toggle.classList.remove("active");
+        localStorage.setItem("af_auto_ans", "0");
+        outEl.innerHTML = '<div class="lbl">Limit</div><div class="err">' + t("panelDailyLimitHit") + '</div>';
+        outEl.classList.add("show");
+        updateDailyIndicator();
+        return;
+      }
+
       busy = true;
       try {
         const q = getQuestion();
@@ -1609,6 +1747,10 @@
 
         if (filled > 0) {
           lastKey = key;
+          if (!__afIsPremium) {
+            incrementDailyAuto();
+            updateDailyIndicator();
+          }
           if (onAuto) onAuto();
           dbMod.updateDoc(dbMod.doc(db, "users", uid), { autoStats: dbMod.increment(1) }).catch(() => {});
 
@@ -1630,10 +1772,19 @@
     root._resetLastKey = () => { lastKey = null; };
 
     toggle.addEventListener("click", () => {
+      if (!autoEnabled) {
+        if (!canAutoAnswer()) {
+          outEl.innerHTML = '<div class="lbl">Limit</div><div class="err">' + t("panelDailyLimitHit") + '</div>';
+          outEl.classList.add("show");
+          updateDailyIndicator();
+          return;
+        }
+      }
       autoEnabled = !autoEnabled;
       toggle.classList.toggle("active", autoEnabled);
       localStorage.setItem("af_auto_ans", autoEnabled ? "1" : "0");
       if (autoEnabled) restartLoop();
+      updateDailyIndicator();
     });
 
     slider.addEventListener("input", () => {
@@ -1643,9 +1794,14 @@
     });
 
     speedSlider.addEventListener("input", () => {
-      advanceDelay = parseInt(speedSlider.value, 10);
-      speedVal.textContent = advanceDelay + "ms";
-      localStorage.setItem("af_speed", advanceDelay);
+      let v = parseInt(speedSlider.value, 10);
+      if (!__afIsPremium && v < 50) {
+        v = 50;
+        speedSlider.value = "50";
+      }
+      advanceDelay = v;
+      speedVal.textContent = v + "ms";
+      localStorage.setItem("af_speed", v);
     });
 
     closeBtn.addEventListener("click", () => {
@@ -2213,10 +2369,19 @@
           </div>
           <div>
             <div class="af-section-title">${t("adminAllUsers")}</div>
+            <div id="af-admin-student" style="font-size:12.5px;color:var(--text-dim);margin:-4px 0 10px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);"></div>
             <div id="af-admin-list">Loading...</div>
           </div>
         </div>`;
       document.body.appendChild(panel);
+
+      const stuName = getStudentName();
+      const stuEl = document.getElementById("af-admin-student");
+      if (stuEl) {
+        stuEl.innerHTML = stuName
+          ? `<span style="color:var(--accent);font-weight:600;">${t("adminStudentName")}:</span> ${escapeHtml(stuName)}`
+          : `<span style="color:var(--text-muted);">${t("adminStudentName")}: —</span>`;
+      }
 
       const unsub = dbMod.onSnapshot(dbMod.collection(db, "users"), snap => {
         const listDiv = document.getElementById("af-admin-list");
