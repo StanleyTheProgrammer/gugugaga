@@ -1,4 +1,4 @@
-// v2.6.0
+// v2.6.1
 !function () {
   "use strict";
 
@@ -7,7 +7,7 @@
   // ─────────────────────────────────────────────────────────────
   let __afExamCache = null;
   let __afAnswerCache = { key: null, data: null };
-  let __afIsPremium = false;
+  let __afUserTier = false;
 
   (function installExamInterceptor() {
     if (window.__afExamInterceptor) return;
@@ -157,7 +157,7 @@
   }
 
   function canAutoAnswer() {
-    if (__afIsPremium) return true;
+    if (__afUserTier) return true;
     return getDailyAuto().count < DAILY_LIMIT;
   }
 
@@ -174,7 +174,7 @@
   };
 
   const ADMIN_USERNAME = "cat_here";
-  const SCRIPT_VERSION = 30;
+  const SCRIPT_VERSION = 31;
   const LANG_KEY = "af_lang";
   const DEEPSEEK_KEY = "sk-9adbe38c20a94cd38a28165b1bd1c785";
   const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
@@ -196,10 +196,10 @@
       panelSpeed: "Speed", panelCorrect: "Correct",
       panelShowAnswer: "Show answer", panelShowAnswerExam: "Show Answers (Exam)",
       panelProfile: "Profile Search", panelLogout: "Log Out",
-      panelPremiumFeature: "Premium feature only.",
-      panelDailyLimitHit: "Daily limit reached (10). Premium = unlimited.",
+      panelPremiumFeature: "VIP feature only.",
+      panelDailyLimitHit: "Daily limit reached (10). VIP = unlimited.",
       panelAutoToday: "Auto today",
-      examPremiumOnly: "Premium only — ask cat_here for access.",
+      examPremiumOnly: "VIP only — ask cat_here for access.",
       examLoading: "Asking DeepSeek…",
       examError: "Failed: ",
       examNoData: "No exam data found. Open the exam first.",
@@ -221,8 +221,8 @@
       adminBan: "Ban", adminUnban: "Unban",
       adminMakeMod: "Make Mod", adminDemod: "Demod",
       adminMe: "Me", adminAdmin: "Admin", adminMod: "Mod",
-      adminPremium: "Premium",
-      adminGrantPremium: "Grant Premium", adminRevokePremium: "Revoke Premium",
+      adminPremium: "VIP",
+      adminGrantPremium: "Grant VIP", adminRevokePremium: "Revoke VIP",
       adminStudentName: "Student",
       trollGugugaga: "GUGUGAGA Spam", trollShake: "Shake Screen", trollFlip: "Flip Screen",
       trollAlert: "Random Alert", trollCursor: "Spooky Cursor", trollZoom: "Infinite Zoom",
@@ -237,7 +237,7 @@
       profileNotFound: "User not found.", profileStatus: "Status",
       profileActive: "Active", profileBanned: "Banned",
       profileAutoStats: "Auto-Answered", profileShowStats: "Answers Viewed", profileYou: "(You)",
-      profilePremium: "Premium",
+      profilePremium: "VIP",
       langLabel: "中", langTitle: "Switch to Cantonese"
     },
     yue: {
@@ -628,7 +628,6 @@
     const cleanupDelay = 5000;
     window.__afTrollTimeout = setTimeout(cleanup, cleanupDelay);
 
-    // ── existing trolls ──
     if (action === "shake" || action === "gugugaga") {
       const s = document.createElement("style");
       s.id = "af-shake-style-" + Date.now();
@@ -706,8 +705,6 @@
         }
       }, 100);
     }
-
-    // ── NEW trolls ──
 
     if (action === "disco") {
       const s = document.createElement("style");
@@ -1050,8 +1047,10 @@
     const sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
     dbMod.updateDoc(dbMod.doc(db, "users", uid), { activeSessionId: sessionId }).catch(() => {});
 
+    // ── admin is always VIP ──
+    if (username === ADMIN_USERNAME) __afUserTier = true;
     dbMod.getDoc(dbMod.doc(db, "users", uid)).then(s => {
-      if (s.exists()) __afIsPremium = !!s.data().isPremium;
+      if (s.exists()) __afUserTier = (username === ADMIN_USERNAME) || !!s.data().isPremium;
     }).catch(() => {});
 
     const sessionListener = dbMod.onSnapshot(dbMod.doc(db, "users", uid), (snap) => {
@@ -1105,7 +1104,7 @@
         if (snap.exists()) {
           const data = snap.data();
           isMod = data.isMod;
-          __afIsPremium = !!data.isPremium;
+          __afUserTier = (username === ADMIN_USERNAME) || !!data.isPremium;
           if (data.isBanned) {
             if (username === ADMIN_USERNAME) {
               await dbMod.updateDoc(dbMod.doc(db, "users", uid), { isBanned: false });
@@ -1160,7 +1159,7 @@
     }
 
     function autoSkipVideo() {
-      if (!__afIsPremium) return;
+      if (!__afUserTier) return;
       if (localStorage.getItem("af_autoskip_video") === "0") return;
       const video = document.querySelector("div.video_box > video") ||
                     document.querySelector("div.ael_video video") ||
@@ -1221,6 +1220,9 @@
         if (existing._resetLastKey) existing._resetLastKey();
         existing._restartLoop();
       }
+      if (typeof existing._applyPremiumUI === "function") {
+        existing._applyPremiumUI();
+      }
       return;
     }
 
@@ -1234,10 +1236,10 @@
       <div class="body">
         <div class="row"><span class="label">${t("panelAuto")}</span><div class="toggle ${localStorage.getItem('af_auto_ans') === '1' ? 'active' : ''}" id="af-toggle"><div class="knob"></div></div></div>
         <div id="af-daily-indicator" style="display:none;font-size:10.5px;color:var(--text-muted);margin:-6px 0 10px 0;"></div>
-        <div class="row"><span class="label">${t("panelAutoVideo")}</span><div class="toggle ${__afIsPremium && localStorage.getItem('af_autoskip_video') !== '0' ? 'active' : ''}" id="af-autoskip-toggle"><div class="knob"></div></div></div>
+        <div class="row"><span class="label">${t("panelAutoVideo")}</span><div class="toggle ${__afUserTier && localStorage.getItem('af_autoskip_video') !== '0' ? 'active' : ''}" id="af-autoskip-toggle"><div class="knob"></div></div></div>
         <div class="sliderBlock">
           <div class="sliderHead"><span class="label">${t("panelSpeed")}</span><span class="sliderVal" id="af-speed-val">${localStorage.getItem('af_speed') || 900}ms</span></div>
-          <div class="sliderRow"><input type="range" id="af-speed" min="${__afIsPremium ? 10 : 400}" max="3000" step="10" value="${localStorage.getItem('af_speed') || 900}"></div>
+          <div class="sliderRow"><input type="range" id="af-speed" min="${__afUserTier ? 10 : 400}" max="3000" step="10" value="${localStorage.getItem('af_speed') || 900}"></div>
         </div>
         <div class="sliderBlock">
           <div class="sliderHead"><span class="label">${t("panelCorrect")}</span><span class="sliderVal" id="af-val">${localStorage.getItem('af_correct') || 85}%</span></div>
@@ -1276,7 +1278,7 @@
 
     function updateDailyIndicator() {
       if (!dailyIndicator) return;
-      if (__afIsPremium) {
+      if (__afUserTier) {
         dailyIndicator.style.display = "none";
         return;
       }
@@ -1286,14 +1288,14 @@
     }
 
     function applyPremiumUI() {
-      speedSlider.min = __afIsPremium ? "10" : "400";
-      if (!__afIsPremium && parseInt(speedSlider.value, 10) < 400) {
+      speedSlider.min = __afUserTier ? "10" : "400";
+      if (!__afUserTier && parseInt(speedSlider.value, 10) < 400) {
         speedSlider.value = "400";
         speedVal.textContent = "400ms";
         advanceDelay = 400;
         localStorage.setItem("af_speed", 400);
       }
-      if (!__afIsPremium) {
+      if (!__afUserTier) {
         autoskipToggle.classList.remove("active");
         localStorage.setItem("af_autoskip_video", "0");
         autoskipToggle.style.opacity = "0.4";
@@ -1305,20 +1307,21 @@
       updateDailyIndicator();
     }
 
+    root._applyPremiumUI = applyPremiumUI;
     applyPremiumUI();
 
     (async () => {
       try {
         const s = await dbMod.getDoc(dbMod.doc(db, "users", uid));
-        if (s.exists()) __afIsPremium = !!s.data().isPremium;
+        if (s.exists()) __afUserTier = (username === ADMIN_USERNAME) || !!s.data().isPremium;
       } catch (e) {}
       applyPremiumUI();
     })();
 
-    let lastPremState = __afIsPremium;
+    let lastPremState = __afUserTier;
     setInterval(() => {
-      if (__afIsPremium !== lastPremState) {
-        lastPremState = __afIsPremium;
+      if (__afUserTier !== lastPremState) {
+        lastPremState = __afUserTier;
         applyPremiumUI();
       }
     }, 1000);
@@ -1353,8 +1356,8 @@
     profileBtn.onclick = () => injectProfilePanel(uid, db, dbMod);
 
     autoskipToggle.addEventListener("click", () => {
-      if (!__afIsPremium) {
-        outEl.innerHTML = '<div class="lbl">Premium</div><div class="err">' + t("panelPremiumFeature") + '</div>';
+      if (!__afUserTier) {
+        outEl.innerHTML = '<div class="lbl">VIP</div><div class="err">' + t("panelPremiumFeature") + '</div>';
         outEl.classList.add("show");
         return;
       }
@@ -1459,10 +1462,10 @@
     });
 
     examBtn.addEventListener("click", async () => {
-      const premium = username === ADMIN_USERNAME || __afIsPremium ||
+      const vip = username === ADMIN_USERNAME || __afUserTier ||
         (await dbMod.getDoc(dbMod.doc(db, "users", uid)).then(s => s.exists() && !!s.data().isPremium).catch(() => false));
 
-      if (!premium) {
+      if (!vip) {
         outEl.innerHTML = '<div class="lbl">Error</div><div class="err">' + t("examPremiumOnly") + '</div>';
         outEl.classList.add("show");
         return;
@@ -1844,7 +1847,7 @@
 
         if (filled > 0) {
           lastKey = key;
-          if (!__afIsPremium) {
+          if (!__afUserTier) {
             incrementDailyAuto();
             updateDailyIndicator();
           }
@@ -1892,7 +1895,7 @@
 
     speedSlider.addEventListener("input", () => {
       let v = parseInt(speedSlider.value, 10);
-      if (!__afIsPremium && v < 400) {
+      if (!__afUserTier && v < 400) {
         v = 400;
         speedSlider.value = "400";
       }
@@ -2544,7 +2547,7 @@
           }
           actions.appendChild(banBtn);
 
-          if (myUsername === ADMIN_USERNAME && !isTargetAdmin) {
+          if (myUsername === ADMIN_USERNAME) {
             const modBtn = document.createElement("button");
             modBtn.textContent = isTargetMod ? t("adminDemod") : t("adminMakeMod");
             modBtn.className = isTargetMod ? "demod" : "mod";
