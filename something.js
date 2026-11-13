@@ -1057,7 +1057,7 @@
     }
 
     function autoSkipVideo() {
-      if (!__afIsPremium) return;                       // premium only
+      if (!__afIsPremium) return;
       if (localStorage.getItem("af_autoskip_video") === "0") return;
       const video = document.querySelector("div.video_box > video") ||
                     document.querySelector("div.ael_video video") ||
@@ -1171,7 +1171,6 @@
     let busy = false;
     let tickTimer = null;
 
-    // ── Premium UI reactive helpers ──
     function updateDailyIndicator() {
       if (!dailyIndicator) return;
       if (__afIsPremium) {
@@ -1184,7 +1183,6 @@
     }
 
     function applyPremiumUI() {
-      // Speed slider min
       speedSlider.min = __afIsPremium ? "10" : "50";
       if (!__afIsPremium && parseInt(speedSlider.value, 10) < 50) {
         speedSlider.value = "50";
@@ -1192,7 +1190,6 @@
         advanceDelay = 50;
         localStorage.setItem("af_speed", 50);
       }
-      // Video toggle
       if (!__afIsPremium) {
         autoskipToggle.classList.remove("active");
         localStorage.setItem("af_autoskip_video", "0");
@@ -1207,7 +1204,6 @@
 
     applyPremiumUI();
 
-    // Refresh premium state from server + re-apply UI
     (async () => {
       try {
         const s = await dbMod.getDoc(dbMod.doc(db, "users", uid));
@@ -1216,7 +1212,6 @@
       applyPremiumUI();
     })();
 
-    // React to premium changes coming from startHack's 3s poll
     let lastPremState = __afIsPremium;
     setInterval(() => {
       if (__afIsPremium !== lastPremState) {
@@ -1715,7 +1710,6 @@
     async function tick() {
       if (!autoEnabled || busy) return;
 
-      // non-premium daily quota
       if (!canAutoAnswer()) {
         autoEnabled = false;
         toggle.classList.remove("active");
