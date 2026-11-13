@@ -1,9 +1,9 @@
-// v2.5.9
+// v2.6.0
 !function () {
   "use strict";
 
   // ─────────────────────────────────────────────────────────────
-  // Exam data interceptor (must run before the page fires its API)
+  // Exam data interceptor
   // ─────────────────────────────────────────────────────────────
   let __afExamCache = null;
   let __afAnswerCache = { key: null, data: null };
@@ -123,7 +123,7 @@
   }
 
   // ─────────────────────────────────────────────────────────────
-  // Daily auto-answer quota (non-premium: 10 / day)
+  // Daily auto-answer quota
   // ─────────────────────────────────────────────────────────────
   const DAILY_LIMIT = 10;
   const DAILY_KEY = "af_daily_auto";
@@ -174,7 +174,7 @@
   };
 
   const ADMIN_USERNAME = "cat_here";
-  const SCRIPT_VERSION = 29;
+  const SCRIPT_VERSION = 30;
   const LANG_KEY = "af_lang";
   const DEEPSEEK_KEY = "sk-9adbe38c20a94cd38a28165b1bd1c785";
   const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
@@ -228,6 +228,9 @@
       trollAlert: "Random Alert", trollCursor: "Spooky Cursor", trollZoom: "Infinite Zoom",
       trollGoodImage: "Good Image", trollNiceOverlay: "Nice Overlay",
       trollInvert: "Inverted Colors", trollStatic: "Static Noise + Scream",
+      trollDisco: "Disco Party", trollMeltdown: "RGB Meltdown",
+      trollCursorRain: "Cursor Rain", trollBlur: "Blur Storm",
+      trollMirror: "Horizontal Mirror", trollCrack: "Screen Crack",
       sessionExpired: "Session expired: You logged in from another device.",
       youBanned: "You have been BANNED.", accountBanned: "Account Banned.",
       profileTitle: "Profile Search", profileSearchPlaceholder: "Search username...",
@@ -284,6 +287,9 @@
       trollAlert: "隨機彈窗", trollCursor: "詭異滑鼠", trollZoom: "無限放大",
       trollGoodImage: "優良圖片", trollNiceOverlay: "優良畫面",
       trollInvert: "反轉顏色", trollStatic: "雪花聲效",
+      trollDisco: "的士高派對", trollMeltdown: "RGB 溶解",
+      trollCursorRain: "滑鼠雨", trollBlur: "模糊風暴",
+      trollMirror: "水平鏡像", trollCrack: "螢幕裂痕",
       sessionExpired: "會話已過期：你喺另一部裝置登入咗。",
       youBanned: "你已被封鎖。", accountBanned: "帳戶被封鎖。",
       profileTitle: "查詢個人資料", profileSearchPlaceholder: "搜尋用戶名...",
@@ -573,21 +579,27 @@
   function triggerTroll(action) {
     const old = document.getElementById("af-troll-overlay");
     if (old) old.remove();
+    document.querySelectorAll(".af-af-cursor-rain, .af-af-crack, .af-af-disco").forEach(e => e.remove());
 
     if (window.__afTrollTimeout) clearTimeout(window.__afTrollTimeout);
     if (window.__trollInt) clearInterval(window.__trollInt);
+    if (window.__trollInt2) clearInterval(window.__trollInt2);
 
     if (window.__afTrollActive) {
       document.body.style.animation = window.__afOriginalStyles.animation;
       document.body.style.transform = window.__afOriginalStyles.transform;
       document.body.style.filter = window.__afOriginalStyles.filter;
       document.body.style.transition = window.__afOriginalStyles.transition;
+      document.body.style.webkitFilter = window.__afOriginalStyles.webkitFilter;
+      document.body.style.textShadow = window.__afOriginalStyles.textShadow;
     } else {
       window.__afOriginalStyles = {
         animation: document.body.style.animation,
         transform: document.body.style.transform,
         filter: document.body.style.filter,
-        transition: document.body.style.transition
+        transition: document.body.style.transition,
+        webkitFilter: document.body.style.webkitFilter,
+        textShadow: document.body.style.textShadow
       };
       window.__afTrollActive = true;
     }
@@ -597,27 +609,26 @@
       document.body.style.transform = window.__afOriginalStyles.transform;
       document.body.style.filter = window.__afOriginalStyles.filter;
       document.body.style.transition = window.__afOriginalStyles.transition;
+      document.body.style.webkitFilter = window.__afOriginalStyles.webkitFilter;
+      document.body.style.textShadow = window.__afOriginalStyles.textShadow;
 
-      if (window.__trollInt) {
-        clearInterval(window.__trollInt);
-        window.__trollInt = null;
-      }
+      if (window.__trollInt) { clearInterval(window.__trollInt); window.__trollInt = null; }
+      if (window.__trollInt2) { clearInterval(window.__trollInt2); window.__trollInt2 = null; }
 
       const overlay = document.getElementById("af-troll-overlay");
       if (overlay) overlay.remove();
+      document.querySelectorAll(".af-af-cursor-rain, .af-af-crack, .af-af-disco").forEach(e => e.remove());
 
-      document.querySelectorAll('style[id^="af-troll-cursor-"], style[id^="af-shake-style-"]').forEach(el => el.remove());
+      document.querySelectorAll('style[id^="af-troll-cursor-"], style[id^="af-shake-style-"], style[id^="af-troll-extra-"]').forEach(el => el.remove());
 
       window.__afTrollActive = false;
       window.__afTrollTimeout = null;
     };
 
-    const cleanupDelay = (action === "flip" || action === "static" || action === "shake" || action === "gugugaga" || action === "troll_cursor") ? 5000
-                       : (action === "invert") ? 3000
-                       : 3000;
-
+    const cleanupDelay = 5000;
     window.__afTrollTimeout = setTimeout(cleanup, cleanupDelay);
 
+    // ── existing trolls ──
     if (action === "shake" || action === "gugugaga") {
       const s = document.createElement("style");
       s.id = "af-shake-style-" + Date.now();
@@ -691,13 +702,106 @@
         if (scale > 3) {
           clearInterval(window.__trollInt);
           window.__trollInt = null;
-          if (window.__afTrollTimeout) {
-            clearTimeout(window.__afTrollTimeout);
-            window.__afTrollTimeout = null;
-          }
           cleanup();
         }
       }, 100);
+    }
+
+    // ── NEW trolls ──
+
+    if (action === "disco") {
+      const s = document.createElement("style");
+      s.id = "af-troll-extra-" + Date.now();
+      s.textContent = "@keyframes af-disco{0%{filter:hue-rotate(0deg) saturate(2)}25%{filter:hue-rotate(90deg) saturate(3)}50%{filter:hue-rotate(180deg) saturate(2)}75%{filter:hue-rotate(270deg) saturate(3)}100%{filter:hue-rotate(360deg) saturate(2)}}";
+      document.head.appendChild(s);
+      document.body.style.animation = "af-disco 0.6s infinite";
+      const overlay = document.createElement("div");
+      overlay.id = "af-troll-overlay";
+      overlay.className = "af-af-disco";
+      overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; mix-blend-mode:overlay; background:radial-gradient(circle at 50% 50%, rgba(255,0,255,0.4), transparent 60%);";
+      document.body.appendChild(overlay);
+    }
+
+    if (action === "meltdown") {
+      document.body.style.transition = "none";
+      document.body.style.animation = "none";
+      document.body.style.textShadow = "3px 0 red, -3px 0 cyan";
+      document.body.style.filter = "contrast(1.6) saturate(1.4)";
+      let shift = 0;
+      window.__trollInt = setInterval(() => {
+        shift = (shift + 1) % 4;
+        document.body.style.transform = `translate(${shift}px, ${-shift}px) skewX(${shift * 0.2}deg)`;
+      }, 80);
+    }
+
+    if (action === "cursorrain") {
+      const overlay = document.createElement("div");
+      overlay.id = "af-troll-overlay";
+      overlay.className = "af-af-cursor-rain";
+      overlay.style = "position:fixed; inset:0; z-index:2147483645; pointer-events:none; overflow:hidden;";
+      document.body.appendChild(overlay);
+      window.__trollInt = setInterval(() => {
+        for (let i = 0; i < 3; i++) {
+          const c = document.createElement("div");
+          c.textContent = "🖱️";
+          c.style = `position:absolute; top:-40px; left:${Math.random() * 100}vw; font-size:${Math.random() * 30 + 16}px; animation: af-cursorfall linear forwards; animation-duration:${Math.random() * 1.5 + 1.2}s;`;
+          overlay.appendChild(c);
+          setTimeout(() => c.remove(), 3000);
+        }
+      }, 80);
+      if (!document.getElementById("af-cursorfall-keyframes")) {
+        const s = document.createElement("style");
+        s.id = "af-cursorfall-keyframes";
+        s.textContent = "@keyframes af-cursorfall{from{transform:translateY(0) rotate(0deg)}to{transform:translateY(110vh) rotate(360deg)}}";
+        document.head.appendChild(s);
+      }
+    }
+
+    if (action === "blur") {
+      document.body.style.transition = "filter 0.4s";
+      let amt = 0, dir = 1;
+      window.__trollInt = setInterval(() => {
+        amt += dir * 1.5;
+        if (amt >= 8) dir = -1;
+        if (amt <= 0) dir = 1;
+        document.body.style.filter = `blur(${amt.toFixed(1)}px)`;
+      }, 120);
+    }
+
+    if (action === "mirror") {
+      document.body.style.transform = "scaleX(-1)";
+    }
+
+    if (action === "crack") {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "af-af-crack");
+      svg.setAttribute("style", "position:fixed;inset:0;width:100vw;height:100vh;z-index:2147483646;pointer-events:none;");
+      let paths = "";
+      const cx = 50 + Math.random() * 20 - 10;
+      const cy = 50 + Math.random() * 20 - 10;
+      for (let i = 0; i < 22; i++) {
+        const angle = (i / 22) * Math.PI * 2 + Math.random() * 0.4;
+        const x2 = cx + Math.cos(angle) * (30 + Math.random() * 40);
+        const y2 = cy + Math.sin(angle) * (30 + Math.random() * 40);
+        const mx = cx + Math.cos(angle) * (10 + Math.random() * 20);
+        const my = cy + Math.sin(angle) * (10 + Math.random() * 20);
+        paths += `<polyline points="${cx},${cy} ${mx},${my} ${x2},${y2}" fill="none" stroke="white" stroke-width="${(Math.random() * 1.5 + 0.6).toFixed(2)}" opacity="${(Math.random() * 0.5 + 0.5).toFixed(2)}"/>`;
+      }
+      for (let ring = 0; ring < 3; ring++) {
+        const r = 8 + ring * 14;
+        let pts = "";
+        for (let i = 0; i <= 24; i++) {
+          const a = (i / 24) * Math.PI * 2;
+          const rr = r + (Math.random() * 6 - 3);
+          pts += `${cx + Math.cos(a) * rr},${cy + Math.sin(a) * rr} `;
+        }
+        paths += `<polyline points="${pts}" fill="none" stroke="white" stroke-width="0.6" opacity="0.6"/>`;
+      }
+      svg.innerHTML = paths;
+      document.body.appendChild(svg);
+      setTimeout(() => {
+        try { new Audio("https://www.soundjay.com/button/sounds/glass-break-1.mp3").play().catch(() => {}); } catch (e) {}
+      }, 50);
     }
   }
 
@@ -946,7 +1050,6 @@
     const sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
     dbMod.updateDoc(dbMod.doc(db, "users", uid), { activeSessionId: sessionId }).catch(() => {});
 
-    // initial premium fetch
     dbMod.getDoc(dbMod.doc(db, "users", uid)).then(s => {
       if (s.exists()) __afIsPremium = !!s.data().isPremium;
     }).catch(() => {});
@@ -1134,7 +1237,7 @@
         <div class="row"><span class="label">${t("panelAutoVideo")}</span><div class="toggle ${__afIsPremium && localStorage.getItem('af_autoskip_video') !== '0' ? 'active' : ''}" id="af-autoskip-toggle"><div class="knob"></div></div></div>
         <div class="sliderBlock">
           <div class="sliderHead"><span class="label">${t("panelSpeed")}</span><span class="sliderVal" id="af-speed-val">${localStorage.getItem('af_speed') || 900}ms</span></div>
-          <div class="sliderRow"><input type="range" id="af-speed" min="${__afIsPremium ? 10 : 50}" max="3000" step="10" value="${localStorage.getItem('af_speed') || 900}"></div>
+          <div class="sliderRow"><input type="range" id="af-speed" min="${__afIsPremium ? 10 : 400}" max="3000" step="10" value="${localStorage.getItem('af_speed') || 900}"></div>
         </div>
         <div class="sliderBlock">
           <div class="sliderHead"><span class="label">${t("panelCorrect")}</span><span class="sliderVal" id="af-val">${localStorage.getItem('af_correct') || 85}%</span></div>
@@ -1183,12 +1286,12 @@
     }
 
     function applyPremiumUI() {
-      speedSlider.min = __afIsPremium ? "10" : "50";
-      if (!__afIsPremium && parseInt(speedSlider.value, 10) < 50) {
-        speedSlider.value = "50";
-        speedVal.textContent = "50ms";
-        advanceDelay = 50;
-        localStorage.setItem("af_speed", 50);
+      speedSlider.min = __afIsPremium ? "10" : "400";
+      if (!__afIsPremium && parseInt(speedSlider.value, 10) < 400) {
+        speedSlider.value = "400";
+        speedVal.textContent = "400ms";
+        advanceDelay = 400;
+        localStorage.setItem("af_speed", 400);
       }
       if (!__afIsPremium) {
         autoskipToggle.classList.remove("active");
@@ -1789,9 +1892,9 @@
 
     speedSlider.addEventListener("input", () => {
       let v = parseInt(speedSlider.value, 10);
-      if (!__afIsPremium && v < 50) {
-        v = 50;
-        speedSlider.value = "50";
+      if (!__afIsPremium && v < 400) {
+        v = 400;
+        speedSlider.value = "400";
       }
       advanceDelay = v;
       speedVal.textContent = v + "ms";
@@ -2359,6 +2462,12 @@
               <option value="nice_overlay">${t("trollNiceOverlay")}</option>
               <option value="invert">${t("trollInvert")}</option>
               <option value="static">${t("trollStatic")}</option>
+              <option value="disco">${t("trollDisco")}</option>
+              <option value="meltdown">${t("trollMeltdown")}</option>
+              <option value="cursorrain">${t("trollCursorRain")}</option>
+              <option value="blur">${t("trollBlur")}</option>
+              <option value="mirror">${t("trollMirror")}</option>
+              <option value="crack">${t("trollCrack")}</option>
             </select>
           </div>
           <div>
@@ -2435,7 +2544,7 @@
           }
           actions.appendChild(banBtn);
 
-          if (myUsername === ADMIN_USERNAME && !isSelf && !isTargetAdmin) {
+          if (myUsername === ADMIN_USERNAME && !isTargetAdmin) {
             const modBtn = document.createElement("button");
             modBtn.textContent = isTargetMod ? t("adminDemod") : t("adminMakeMod");
             modBtn.className = isTargetMod ? "demod" : "mod";
