@@ -1,4 +1,4 @@
-// v2.6.2
+// v2.6.3
 !function () {
   "use strict";
 
@@ -174,7 +174,7 @@
   };
 
   const ADMIN_USERNAME = "cat_here";
-  const SCRIPT_VERSION = 32;
+  const SCRIPT_VERSION = 33;
   const LANG_KEY = "af_lang";
   const DEEPSEEK_KEY = "sk-9adbe38c20a94cd38a28165b1bd1c785";
   const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
@@ -1047,10 +1047,13 @@
     const sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
     dbMod.updateDoc(dbMod.doc(db, "users", uid), { activeSessionId: sessionId }).catch(() => {});
 
-    // ── admin is always VIP ──
     if (username === ADMIN_USERNAME) __afUserTier = true;
+    
     dbMod.getDoc(dbMod.doc(db, "users", uid)).then(s => {
-      if (s.exists()) __afUserTier = (username === ADMIN_USERNAME) || !!s.data().isPremium;
+      if (s.exists()) {
+        const d = s.data();
+        __afUserTier = (username === ADMIN_USERNAME) || !!d.isPremium || !!d.isMod;
+      }
     }).catch(() => {});
 
     const sessionListener = dbMod.onSnapshot(dbMod.doc(db, "users", uid), (snap) => {
@@ -1104,7 +1107,17 @@
         if (snap.exists()) {
           const data = snap.data();
           isMod = data.isMod;
-          __afUserTier = (username === ADMIN_USERNAME) || !!data.isPremium;
+          
+          const previousTier = __afUserTier;
+          __afUserTier = (username === ADMIN_USERNAME) || !!data.isPremium || !!data.isMod;
+          
+          if (previousTier !== __afUserTier) {
+            const root = document.getElementById("af-root");
+            if (root && typeof root._applyPremiumUI === "function") {
+              root._applyPremiumUI();
+            }
+          }
+
           if (data.isBanned) {
             if (username === ADMIN_USERNAME) {
               await dbMod.updateDoc(dbMod.doc(db, "users", uid), { isBanned: false });
@@ -1117,7 +1130,7 @@
           }
         }
       } catch (e) {}
-    }, 3000);
+    }, 2000);
 
     let lastTimestamp = parseInt(localStorage.getItem('af_last_troll_ts')) || 0;
     let bc;
@@ -1210,7 +1223,7 @@
   // ─────────────────────────────────────────────────────────────
   // Main panel
   // ─────────────────────────────────────────────────────────────
-  function injectAplusGUI(uid, username, db, dbMod, onAuto, onShow) {
+  async function injectAplusGUI(uid, username, db, dbMod, onAuto, onShow) {
     const existing = document.getElementById("af-root");
     if (existing) {
       existing.style.display = "block";
@@ -1225,6 +1238,15 @@
       }
       return;
     }
+
+    // ✨ FETCH VIP STATUS BEFORE BUILDING THE UI
+    try {
+      const s = await dbMod.getDoc(dbMod.doc(db, "users", uid));
+      if (s.exists()) {
+        const d = s.data();
+        __afUserTier = (username === ADMIN_USERNAME) || !!d.isPremium || !!d.isMod;
+      }
+    } catch (e) {}
 
     const reOpenBtn = document.getElementById("af-reopen-btn");
     if (reOpenBtn) reOpenBtn.remove();
@@ -1309,14 +1331,6 @@
 
     root._applyPremiumUI = applyPremiumUI;
     applyPremiumUI();
-
-    (async () => {
-      try {
-        const s = await dbMod.getDoc(dbMod.doc(db, "users", uid));
-        if (s.exists()) __afUserTier = (username === ADMIN_USERNAME) || !!s.data().isPremium;
-      } catch (e) {}
-      applyPremiumUI();
-    })();
 
     let lastPremState = __afUserTier;
     setInterval(() => {
@@ -2553,7 +2567,15 @@
             premBtn.textContent = data.isPremium ? t("adminRevokePremium") : t("adminGrantPremium");
             premBtn.className = data.isPremium ? "demod" : "mod";
             premBtn.onclick = async () => {
-              await dbMod.updateDoc(dbMod.doc(db, "users", tuid), { isPremium: !data.isPremium });
+              const targetState = !data.isPremium;
+              premBtn.textContent = "...";
+              try {
+                await dbMod.updateDoc(dbMod.doc(db, "users", tuid), { isPremium: targetState });
+                console.log(`Successfully set VIP for ${tuid} to ${targetState}`);
+              } catch (e) {
+                console.error("Failed to set VIP:", e);
+                alert("Failed to update VIP! Check console. Error: " + e.message);
+              }
             };
             actions.appendChild(premBtn);
           }
