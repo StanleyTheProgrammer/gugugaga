@@ -1,4 +1,4 @@
-// v2.6.1
+// v2.6.2
 !function () {
   "use strict";
 
@@ -174,7 +174,7 @@
   };
 
   const ADMIN_USERNAME = "cat_here";
-  const SCRIPT_VERSION = 31;
+  const SCRIPT_VERSION = 32;
   const LANG_KEY = "af_lang";
   const DEEPSEEK_KEY = "sk-9adbe38c20a94cd38a28165b1bd1c785";
   const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
@@ -1535,6 +1535,13 @@
         let val = a.questionAnswer;
         if (Array.isArray(val)) val = val[0];
         if (typeof val !== "string") val = String(val);
+        
+        // Handle pipe-separated options (e.g. "You will die|You will not die")
+        if (val.includes("|")) {
+          const parts = val.split("|");
+          val = parts[Math.floor(Math.random() * parts.length)].trim();
+        }
+
         if (forceWrong) val = randomWrongText(val);
         if (input.value === val) continue;
         input.focus();
@@ -1678,65 +1685,6 @@
       return clicked;
     }
 
-    async function clickMatching(q, forceWrong) {
-      const container = document.querySelector('.ael_matching_answer_component');
-      if (!container) return 0;
-
-      const leftItems = container.querySelectorAll('.pair_left_box ul li');
-      const rightItems = container.querySelectorAll('.pair_right_box ul li.answer_con');
-      if (!leftItems.length || !rightItems.length) return 0;
-
-      let pairs = [];
-      if (q.matches && Array.isArray(q.matches) && q.matches.length > 0) {
-        q.matches.forEach(m => {
-          const left = m.questionContent || m.leftText || m.optionContent || m.text || m.left;
-          const right = m.answerContent || m.rightText || m.answer || m.right;
-          if (left && right) pairs.push({ left, right });
-        });
-      } else if (q.childQuestions && Array.isArray(q.childQuestions)) {
-        q.childQuestions.forEach(c => {
-          if (c.questionAnswer && c.questionAnswer.length > 0) {
-            pairs.push({ left: c.questionContent || c.question, right: c.questionAnswer[0] });
-          }
-        });
-      }
-
-      if (!pairs.length) return 0;
-
-      let clicked = 0;
-      for (let i = 0; i < pairs.length; i++) {
-        let leftEl = null, rightEl = null;
-        const p = pairs[i];
-        let targetRight = p.right;
-        if (forceWrong) {
-          const wrongPool = Array.from(rightItems).filter(li => li.innerText.trim() !== p.right);
-          if (wrongPool.length) targetRight = wrongPool[Math.floor(Math.random() * wrongPool.length)].innerText.trim();
-        }
-
-        for (const li of leftItems) {
-          const txt = li.innerText.trim();
-          if (txt === p.left || txt.includes(p.left) || p.left.includes(txt)) {
-            leftEl = li; break;
-          }
-        }
-        for (const li of rightItems) {
-          const txt = li.innerText.trim();
-          if (txt === targetRight || txt.includes(targetRight) || targetRight.includes(txt)) {
-            rightEl = li; break;
-          }
-        }
-
-        if (leftEl && rightEl) {
-          leftEl.click();
-          await new Promise(r => setTimeout(r, 200));
-          rightEl.click();
-          clicked++;
-          await new Promise(r => setTimeout(r, 100));
-        }
-      }
-      return clicked;
-    }
-
     async function fillDropdowns(q, forceWrong) {
       const card = document.querySelector(".practice_base_topic_card") || document;
       const comps = card.querySelectorAll(".select_component");
@@ -1798,6 +1746,51 @@
       return filled;
     }
 
+    async function clickRecombine(q, forceWrong) {
+      if (q.questionType !== "RECOMBINE_SENTENCE") return 0;
+      
+      let correctSentence = q.childQuestions[0].questionAnswer;
+      if (!correctSentence) return 0;
+      
+      let words = correctSentence.match(/[a-zA-Z0-9]+|[^\s\w]/g) || correctSentence.split(/\s+/);
+      
+      const card = document.querySelector(".practice_base_topic_card") || document;
+      
+      const draggableItems = Array.from(card.querySelectorAll('[draggable="true"], .drag_item, .option_item, .word_item, li:not(.box_item)'));
+      
+      let dropBoxes = Array.from(card.querySelectorAll('.box_item'));
+      if (!dropBoxes.length) dropBoxes = Array.from(card.querySelectorAll('[class*="drop"]'));
+      
+      if (!draggableItems.length || !dropBoxes.length) return 0;
+
+      let clicked = 0;
+      
+      for (let i = 0; i < words.length; i++) {
+        let targetWord = words[i];
+        let box = dropBoxes[i];
+        if (!box) break;
+
+        let sourceEl = draggableItems.find(el => {
+          const txt = el.innerText.trim();
+          return txt === targetWord || (targetWord.length === 1 && txt.endsWith(targetWord));
+        });
+
+        if (sourceEl) {
+          sourceEl.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+          await new Promise(r => setTimeout(r, 50));
+          box.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+          box.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
+          box.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+          box.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+          
+          clicked++;
+          await new Promise(r => setTimeout(r, 150));
+        }
+      }
+      
+      return clicked;
+    }
+
     function findNextButton() {
       const card = document.querySelector(".practice_base_topic_card") || document;
       const btns = card.querySelectorAll(".ael_btn, button");
@@ -1842,8 +1835,8 @@
         let filled = 0;
         filled += fillInputs(q, forceWrong);
         filled += clickChoices(q, forceWrong);
-        filled += await clickMatching(q, forceWrong);
         filled += await fillDropdowns(q, forceWrong);
+        filled += await clickRecombine(q, forceWrong);
 
         if (filled > 0) {
           lastKey = key;
